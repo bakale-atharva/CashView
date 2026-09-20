@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Agents & Skills Deps
+.agents/*
+.impeccable/*
+AGENTS.md
+DESIGN.md
+PRODUCT.md
