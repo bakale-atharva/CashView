@@ -5,6 +5,10 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  // eslint-config-next sets react.version to "detect", which makes
+  // eslint-plugin-react call context.getFilename() — removed in ESLint 10.
+  // An explicit version skips detection entirely.
+  { settings: { react: { version: "19.2.8" } } },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -12,6 +16,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Agent tooling and generated code
+    ".agents/**",
+    ".claude/**",
+    "convex/_generated/**",
+    ".impeccable/**",
   ]),
 ]);
 
