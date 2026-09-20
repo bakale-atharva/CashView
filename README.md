@@ -16,7 +16,7 @@ Work in a **personal account** or inside an **organization**, and switch between
 | **Clients** | Contact and billing details, invoice history, and outstanding balances kept current on every write. |
 | **Reports** | Revenue, outstanding vs. collected, profit and loss, cash flow, and expense breakdown, aggregated server-side. |
 | **Recurring invoices** | Weekly, monthly, quarterly, or yearly templates that generate drafts on a schedule. |
-| **Teams** | Owner, Accountant, and Viewer roles with an audit trail of who changed what. |
+| **Teams** | Owner, Admin, Accountant, and Viewer roles with an audit trail of who changed what. |
 | **Billing** | Free, Pro, and Business plans through Clerk Billing, for organizations and for personal accounts. |
 
 ### Plans
@@ -36,13 +36,14 @@ Limits are enforced by the backend, not just hidden in the interface.
 
 ### Roles
 
-| | Owner | Accountant | Viewer |
-|---|:---:|:---:|:---:|
-| View clients, invoices, expenses, reports | ✓ | ✓ | ✓ |
-| Create and edit clients, invoices, expenses; send invoices; record payments | ✓ | ✓ | |
-| Manage settings, members, billing; read the audit trail | ✓ | | |
+| | Owner | Admin | Accountant | Viewer |
+|---|:---:|:---:|:---:|:---:|
+| View clients, invoices, expenses, reports | ✓ | ✓ | ✓ | ✓ |
+| Create and edit clients, invoices, expenses; send invoices; record payments | ✓ | ✓ | ✓ | |
+| Manage settings and members; read the audit trail | ✓ | ✓ | | |
+| Manage billing; delete or transfer the organization | ✓ | | | |
 
-Personal accounts have every capability. Any role the app does not recognise is treated as Viewer.
+Personal accounts act as Owner of their own books. Any role the app does not recognise is treated as Viewer.
 
 ## Tech stack
 
@@ -113,7 +114,7 @@ pnpm frontend   # Next.js on http://localhost:3000
 | `pnpm backend` | Convex dev deployment, watching `convex/` |
 | `pnpm build` | Production build |
 | `pnpm lint` | ESLint |
-| `pnpm test` | Vitest suite (added with the tenancy core) |
+| `pnpm test` | Vitest suite |
 
 ## Project structure
 
@@ -138,8 +139,8 @@ Built backend first, then frontend, one branch and pull request per phase.
 | Phase | Scope | |
 |---|---|:---:|
 | 0 | Foundation: fonts, lint, Convex provider, dependencies | Done |
-| B1 | Schema and the tenancy core (scope, wrappers, row-level security, triggers) | In review |
-| B2 | Clerk to Convex sync (webhooks) | |
+| B1 | Schema and the tenancy core (scope, wrappers, row-level security, triggers) | Done |
+| B2 | Clerk to Convex sync (webhooks) | In progress |
 | B3 | Clerk dashboard configuration guide | |
 | B4 | Entitlements, quotas, feature gates | |
 | B5 | Clients | |
