@@ -27,8 +27,10 @@ export type Capability =
   | "payments.record"
   | "settings.manage"
   | "members.manage"
+  | "audit.read"
   | "billing.manage"
-  | "audit.read";
+  | "org.delete"
+  | "org.transferOwnership";
 
 const READ: Capability[] = [
   "clients.read",
@@ -43,18 +45,24 @@ const WRITE: Capability[] = [
   "expenses.write",
   "payments.record",
 ];
-const MANAGE: Capability[] = [
-  "settings.manage",
-  "members.manage",
+const MANAGE: Capability[] = ["settings.manage", "members.manage", "audit.read"];
+// The Owner/Admin split. Clerk withholds the matching permissions from Admin
+// too, but Convex refuses these independently so a crafted request gets
+// nowhere either.
+const OWNER_ONLY: Capability[] = [
   "billing.manage",
-  "audit.read",
+  "org.delete",
+  "org.transferOwnership",
 ];
 
 const CAPABILITIES: Record<Role, ReadonlySet<Capability>> = {
+  owner: new Set([...READ, ...WRITE, ...MANAGE, ...OWNER_ONLY]),
   admin: new Set([...READ, ...WRITE, ...MANAGE]),
   accountant: new Set([...READ, ...WRITE]),
   viewer: new Set(READ),
 };
+
+const ROLES: readonly Role[] = ["owner", "admin", "accountant", "viewer"];
 
 /**
  * Maps a Clerk role slug onto a capability role. Anything unrecognized,
@@ -64,10 +72,7 @@ const CAPABILITIES: Record<Role, ReadonlySet<Capability>> = {
 export function roleFromClerkSlug(slug: unknown): Role {
   if (typeof slug !== "string") return "viewer";
   const bare = slug.startsWith("org:") ? slug.slice("org:".length) : slug;
-  if (bare === "admin" || bare === "accountant" || bare === "viewer") {
-    return bare;
-  }
-  return "viewer";
+  return ROLES.find((role) => role === bare) ?? "viewer";
 }
 
 function unauthenticated(reason?: string): ConvexError<{
@@ -87,7 +92,7 @@ export function scopeFromIdentity(identity: UserIdentity): Scope {
   const org: unknown = identity.o;
   if (org === undefined || org === null) {
     // Personal scope: the user owns their books, so every capability is granted.
-    return { scopeId: userId, scopeKind: "user", userId, role: "admin" };
+    return { scopeId: userId, scopeKind: "user", userId, role: "owner" };
   }
 
   // An org claim that is present but malformed must fail closed. Falling

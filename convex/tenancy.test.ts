@@ -28,10 +28,11 @@ function setup() {
   return {
     t,
     // Org A
-    aliceOwner: t.withIdentity(identity("user_alice", { id: "org_A", rol: "admin" })),
+    aliceOwner: t.withIdentity(identity("user_alice", { id: "org_A", rol: "owner" })),
     aliceAccountant: t.withIdentity(
       identity("user_acc", { id: "org_A", rol: "accountant" }),
     ),
+    aliceAdmin: t.withIdentity(identity("user_adm", { id: "org_A", rol: "admin" })),
     aliceViewer: t.withIdentity(identity("user_view", { id: "org_A", rol: "member" })),
     // Org B
     bob: t.withIdentity(identity("user_bob", { id: "org_B", rol: "admin" })),
@@ -77,7 +78,7 @@ describe("authentication", () => {
     expect(await aliceOwner.query(q("whoami"), {})).toMatchObject({
       scopeId: "org_A",
       scopeKind: "org",
-      role: "admin",
+      role: "owner",
     });
     expect(await alicePersonal.query(q("whoami"), {})).toMatchObject({
       scopeId: "user_alice",
@@ -261,7 +262,7 @@ describe("triggers run without the mutation asking", () => {
       scopeKind: "org",
       actorUserId: "user_alice",
       actorEmail: "alice@example.com",
-      actorRole: "admin",
+      actorRole: "owner",
       action: "create",
       entityTable: "clients",
       entityId: id,

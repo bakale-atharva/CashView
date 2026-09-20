@@ -216,6 +216,15 @@ export const deletePayment = scopedMutation({
   },
 });
 
+/** Stands in for any Owner-only action (billing, org deletion). */
+export const manageBilling = scopedMutation({
+  args: {},
+  handler: async (ctx) => {
+    requireCapability(ctx.scope, "billing.manage");
+    return ctx.scope.scopeId;
+  },
+});
+
 export const orgPing = orgOnlyMutation({
   args: {},
   handler: async (ctx) => ctx.scope.scopeId,

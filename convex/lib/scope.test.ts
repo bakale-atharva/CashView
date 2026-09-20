@@ -32,7 +32,7 @@ describe("scopeFromIdentity", () => {
       scopeId: "user_1",
       scopeKind: "user",
       userId: "user_1",
-      role: "admin",
+      role: "owner",
     });
   });
 
@@ -107,15 +107,35 @@ describe("capability matrix", () => {
     expect(hasCapability(as("accountant"), "billing.manage")).toBe(false);
   });
 
-  test("admin can do everything", () => {
+  test("admin can manage the team and settings but not billing or the org itself", () => {
     for (const capability of [
       "clients.write",
       "settings.manage",
       "members.manage",
-      "billing.manage",
       "audit.read",
     ] as const) {
       expect(hasCapability(as("admin"), capability)).toBe(true);
+    }
+    for (const capability of [
+      "billing.manage",
+      "org.delete",
+      "org.transferOwnership",
+    ] as const) {
+      expect(hasCapability(as("admin"), capability)).toBe(false);
+    }
+  });
+
+  test("owner can do everything", () => {
+    for (const capability of [
+      "clients.write",
+      "settings.manage",
+      "members.manage",
+      "audit.read",
+      "billing.manage",
+      "org.delete",
+      "org.transferOwnership",
+    ] as const) {
+      expect(hasCapability(as("owner"), capability)).toBe(true);
     }
   });
 

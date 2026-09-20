@@ -6,7 +6,7 @@ import { literals } from "convex-helpers/validators";
 export const vScopeKind = literals("org", "user");
 
 /** Capability roles. Clerk role slugs are normalized onto these in lib/scope.ts. */
-export const vRole = literals("admin", "accountant", "viewer");
+export const vRole = literals("owner", "admin", "accountant", "viewer");
 
 export const vPlanKey = literals("free", "pro", "business");
 
