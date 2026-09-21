@@ -161,6 +161,9 @@ export default defineSchema({
     ])
     .index("by_scopeId_and_issueDate", ["scopeId", "issueDate"])
     .index("by_scopeId_and_invoiceNumber", ["scopeId", "invoiceNumber"])
+    // UNSCOPED: the daily overdue job scans open invoices across every tenant.
+    // Only an internal function may use it.
+    .index("by_status_and_dueDate", ["status", "dueDate"])
     // UNSCOPED: the public link resolves a request by token alone. The token
     // is the capability; only convex/public.ts may use this index.
     .index("by_publicToken", ["publicToken"]),
@@ -249,7 +252,10 @@ export default defineSchema({
       "categoryId",
       "spentAt",
     ])
-    .index("by_scopeId_and_clientId", ["scopeId", "clientId"]),
+    .index("by_scopeId_and_clientId", ["scopeId", "clientId"])
+    // UNSCOPED: answers "has any org already claimed this stored file?" so one
+    // org cannot attach another's receipt. Only an internal query may use it.
+    .index("by_receiptStorageId", ["receiptStorageId"]),
 
   expenseCategories: defineTable({
     ...scoped,

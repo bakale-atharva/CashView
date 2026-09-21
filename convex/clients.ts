@@ -3,7 +3,7 @@ import { ConvexError, v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { DatabaseReader } from "./_generated/server";
 import { normalizeClientInput, vClientInput } from "./lib/clientInput";
-import { requireFeature } from "./lib/entitlements";
+import { baseCurrency, requireCurrencyAllowed } from "./lib/currency";
 import { getInScope, scopedMutation, scopedQuery } from "./lib/functions";
 import { requireCapability } from "./lib/scope";
 import type { Scope } from "./lib/validators";
@@ -15,22 +15,6 @@ import type { Scope } from "./lib/validators";
  */
 
 type Ctx = { db: DatabaseReader; scope: Scope };
-
-/** The scope's default currency: what a client without its own uses. */
-async function baseCurrency(ctx: Ctx): Promise<string> {
-  const settings = await ctx.db
-    .query("scopeSettings")
-    .withIndex("by_scopeId", (q) => q.eq("scopeId", ctx.scope.scopeId))
-    .first();
-  return settings?.currency ?? "USD";
-}
-
-/** Invoicing a client in another currency is the Business-tier feature. */
-async function requireCurrencyAllowed(ctx: Ctx, currency: string): Promise<void> {
-  if (currency !== (await baseCurrency(ctx))) {
-    await requireFeature(ctx, "multi_currency");
-  }
-}
 
 /** The first kind of record that still points at this client, if any. */
 async function firstReference(
