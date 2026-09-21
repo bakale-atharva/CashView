@@ -1,5 +1,6 @@
-import { ConvexError, v } from "convex/values";
+import { v } from "convex/values";
 import type { Infer } from "convex/values";
+import { invalidInput as invalid } from "./errors";
 import { vAddress } from "./validators";
 
 /**
@@ -28,11 +29,6 @@ export type NormalizedClient = {
   notes?: string;
   currency?: string;
 };
-
-export type InvalidInput = { code: "INVALID_INPUT"; field: string; message: string };
-
-const invalid = (field: string, message: string) =>
-  new ConvexError<InvalidInput>({ code: "INVALID_INPUT", field, message });
 
 const LIMITS = {
   name: 200,
