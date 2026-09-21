@@ -249,7 +249,10 @@ export default defineSchema({
       "categoryId",
       "spentAt",
     ])
-    .index("by_scopeId_and_clientId", ["scopeId", "clientId"]),
+    .index("by_scopeId_and_clientId", ["scopeId", "clientId"])
+    // UNSCOPED: answers "has any org already claimed this stored file?" so one
+    // org cannot attach another's receipt. Only an internal query may use it.
+    .index("by_receiptStorageId", ["receiptStorageId"]),
 
   expenseCategories: defineTable({
     ...scoped,
