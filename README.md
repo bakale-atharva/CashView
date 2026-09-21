@@ -140,9 +140,9 @@ Built backend first, then frontend, one branch and pull request per phase.
 |---|---|:---:|
 | 0 | Foundation: fonts, lint, Convex provider, dependencies | Done |
 | B1 | Schema and the tenancy core (scope, wrappers, row-level security, triggers) | Done |
-| B2 | Clerk to Convex sync (webhooks) | In progress |
-| B3 | Clerk dashboard configuration guide | |
-| B4 | Entitlements, quotas, feature gates | |
+| B2 | Clerk to Convex sync (webhooks) | Done |
+| B3 | Clerk dashboard configuration guide | Skipped for now |
+| B4 | Entitlements, quotas, feature gates | In progress |
 | B5 | Clients | |
 | B6 | Invoices, payments, public link | |
 | B7 | Expenses and receipt storage | |
