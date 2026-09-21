@@ -9,8 +9,10 @@
  */
 
 import type * as audit from "../audit.js";
+import type * as clients from "../clients.js";
 import type * as http from "../http.js";
 import type * as lib_clerkEvents from "../lib/clerkEvents.js";
+import type * as lib_clientInput from "../lib/clientInput.js";
 import type * as lib_entitlements from "../lib/entitlements.js";
 import type * as lib_functions from "../lib/functions.js";
 import type * as lib_period from "../lib/period.js";
@@ -31,8 +33,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   audit: typeof audit;
+  clients: typeof clients;
   http: typeof http;
   "lib/clerkEvents": typeof lib_clerkEvents;
+  "lib/clientInput": typeof lib_clientInput;
   "lib/entitlements": typeof lib_entitlements;
   "lib/functions": typeof lib_functions;
   "lib/period": typeof lib_period;
