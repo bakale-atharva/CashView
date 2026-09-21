@@ -9,6 +9,8 @@ const app = defineApp({
     CLERK_FRONTEND_API_URL: v.optional(v.string()),
     // Signing secret of the Clerk webhook endpoint (B3).
     CLERK_WEBHOOK_SECRET: v.optional(v.string()),
+    // Key for OpenRouter, which runs receipt scanning (Business plan).
+    OPENROUTER_API_KEY: v.optional(v.string()),
   },
 });
 

@@ -32,6 +32,7 @@ type Env = {
   readonly CONVEX_SITE_URL: string;
   readonly CLERK_FRONTEND_API_URL: string | undefined;
   readonly CLERK_WEBHOOK_SECRET: string | undefined;
+  readonly OPENROUTER_API_KEY: string | undefined;
 };
 
 /**

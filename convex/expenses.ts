@@ -266,10 +266,14 @@ export const attachReceipt = scopedMutation({
       return { ok: false as const, reason: problem };
     }
 
+    // A different file invalidates anything scanned from the old one.
     await ctx.db.patch("expenses", id, {
       receiptStorageId: storageId,
       ocrStatus: "none",
       ocrRaw: undefined,
+      ocrSuggestion: undefined,
+      ocrError: undefined,
+      ocrStartedAt: undefined,
     });
     if (expense.receiptStorageId) await ctx.storage.delete(expense.receiptStorageId);
     return { ok: true as const };
@@ -287,6 +291,9 @@ export const detachReceipt = scopedMutation({
       receiptStorageId: undefined,
       ocrStatus: "none",
       ocrRaw: undefined,
+      ocrSuggestion: undefined,
+      ocrError: undefined,
+      ocrStartedAt: undefined,
     });
     await ctx.storage.delete(expense.receiptStorageId);
   },
