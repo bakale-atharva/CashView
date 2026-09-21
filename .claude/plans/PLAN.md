@@ -76,7 +76,7 @@ Clerk's session token does carry `pla` and `fea` claims, but Clerk's own guidanc
 
 So Convex gets entitlements from a `subscriptions` table populated by Clerk Billing webhooks. This is also the only option that supports **quota** limits ("5 clients", "10 invoices/month"), which are counts the JWT could never carry.
 
-A related trap this avoids: Clerk's `has({ permission: 'org:invoices:manage' })` silently returns `false` unless a Billing *Feature* named after the permission's resource is attached to the payer's plan. Per your decision, Convex ignores Clerk permissions entirely and maps the **role slug** (`o.rol`) through a capability matrix in code. Clerk custom permissions remain available as optional sugar for the Next.js layer but are never load-bearing.
+This also sidesteps a coupling that would otherwise bite. In Clerk a permission is `org:<feature>:<action>`, and `has({ permission })` returns `false` unless that **feature** is attached to the payer's active plan. B3 turns that coupling into an asset by splitting features into core (on every plan) and premium (paid only), so `org:reports:read` is automatically false on Free. But it only works inside Clerk's own SDK. Convex cannot call `has()` at all, so it maps the **role slug** (`o.rol`) through a capability matrix in code and reads entitlements from the synced `subscriptions` row. Clerk permissions stay useful for UI gating in Next.js and are never load-bearing for security.
 
 ### A4. `convex-helpers` carries the tenancy plumbing
 
@@ -229,13 +229,16 @@ The Convex guidelines prefer `tokenIdentifier` over `subject` as the stable owne
 
 The capability matrix lives here too:
 
-| Capability | admin (Owner) | accountant | viewer |
-|---|:---:|:---:|:---:|
-| `clients.read` · `invoices.read` · `expenses.read` · `reports.read` | ✓ | ✓ | ✓ |
-| `clients.write` · `invoices.write` · `invoices.send` · `expenses.write` · `payments.record` | ✓ | ✓ | — |
-| `settings.manage` · `members.manage` · `billing.manage` · `audit.read` | ✓ | — | — |
+| Capability | `owner` | `admin` | `accountant` | `viewer` |
+|---|:---:|:---:|:---:|:---:|
+| `clients.read` · `invoices.read` · `expenses.read` · `reports.read` | ✓ | ✓ | ✓ | ✓ |
+| `clients.write` · `invoices.write` · `invoices.send` · `expenses.write` · `payments.record` | ✓ | ✓ | ✓ | — |
+| `settings.manage` · `members.manage` · `audit.read` | ✓ | ✓ | — | — |
+| `billing.manage` · `org.delete` · `org.transferOwnership` | ✓ | — | — | — |
 
-Personal scope grants everything. Unknown or unmapped roles — including Clerk's built-in `org:member` — fall back to **viewer**, so the failure path is least privilege rather than most.
+The role slug arrives from the JWT's `o.rol` claim **without** the `org:` prefix, so the matrix is keyed on the bare strings `owner`, `admin`, `accountant`, `viewer`. Personal scope grants everything, including `billing.manage` — you own your own workspace. Unknown or unmapped roles, including Clerk's built-in `org:member`, fall back to **viewer**, so the failure path is least privilege rather than most.
+
+The bottom row is the Owner/Admin split, and it is enforced twice over: Clerk withholds `org:sys_billing:manage` and `org:sys_profile:delete` from Admin, and Convex refuses the capability independently so a crafted request gets nowhere either. Only the second of those is something we control — Clerk's docs do not specify whether a missing billing permission hides its UI controls or merely disables them, which B3.11 asks you to observe. Convex is the guarantee; Clerk's components are the convenience.
 
 #### `convex/lib/functions.ts` — the wrappers every function is built from
 
@@ -299,262 +302,377 @@ Also: create `scopeSettings` and seed the expense categories on first `organizat
 
 **Branch:** `docs/b3-clerk-config` (adds `docs/clerk-setup.md` only)
 
-You do every click here yourself; I supply the exact values and verify the result afterwards through the Clerk Backend API. **Every name and description below is final copy — paste it verbatim into the dashboard field.** These descriptions are what your teammates read in the role picker and what your customers read on the pricing table, so they are written to be read by people, not to be placeholders.
+You do every click here yourself; I supply exact values and verify the result afterwards through the Clerk Backend API. **Every description below is final copy — paste it verbatim.** All are under 500 characters, which is our house limit for readability; Clerk does not publish a limit for these fields, so if one truncates, tell me and I will trim.
 
-Work through the sections in order. Later ones depend on earlier ones: features must exist before plans can attach them, plans must exist before the webhook can report them, and organizations must be enabled before any of the org settings appear in the sidebar at all.
+### The model you have to understand first
+
+Clerk ties three concepts together, and getting this wrong is what made my earlier draft incoherent:
+
+```
+Permission  =  org : <feature> : <action>
+                     ^^^^^^^^^
+                     must be a real Feature slug
+```
+
+A **Feature** is a named capability. A **Permission** lives *inside* a feature — the middle segment of `org:invoices:manage` is the `invoices` feature. A **Plan** attaches features. And then the rule that binds them:
+
+> `has({ permission: 'org:invoices:manage' })` returns `true` only if the role carries that permission **and** the active plan includes the `invoices` feature.
+
+This is why the earlier version was broken: it invented permissions like `org:settings:manage` while the only features were `recurring_invoices`, `reports`, `ai_receipt_scanning`, and `multi_currency`. There was no `settings` feature, so that permission could never evaluate true.
+
+Handled deliberately, the coupling stops being a trap and becomes the design. Split features into two groups:
+
+- **Core features** — attached to *every* plan including Free. Their permissions are pure role-based access control: `invoices`, `expenses`, `clients`, `settings`, `audit`.
+- **Premium features** — attached only to paid plans. Their permissions are gated by role *and* by tier, in one expression: `reports`, `recurring_invoices`, `receipt_scanning`, `multi_currency`.
+
+So `has({ permission: 'org:reports:read' })` is automatically `false` for everyone on Free, because Free does not carry the `reports` feature — no separate plan check needed.
+
+### Why the sections run in this order
+
+Features are created **inside a plan's edit page**, not on a global Features page. Permissions cannot be created until their feature slug exists. Roles cannot be given permissions that do not exist. And the Creator Role setting cannot point at Owner until Owner exists. So the working order is:
+
+**organizations on → billing on → plans and features → permissions → roles → back to org settings for the role defaults.**
 
 ---
 
 ### B3.0 Before you start
 
-Open [dashboard.clerk.com](https://dashboard.clerk.com) and confirm three things:
+Open [dashboard.clerk.com](https://dashboard.clerk.com) and confirm:
 
-1. **You are on the right application and the right instance.** The instance switcher sits at the top of the sidebar and will read **Development**. Everything below is configured on Development. None of it copies to Production later — when you promote, you redo this whole phase by hand against the Production instance. That is a Clerk limitation, not an oversight in this plan.
-2. **Your keys match.** The `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` in `.env.local` starts with `pk_test_`. If it starts with `pk_live_` you are about to configure the wrong instance.
-3. **You can reach the Convex dashboard too.** You will need it in B3.9 to set the webhook secret, and Convex environment variables are set there (or via CLI) — *not* in `.env.local`, because the webhook handler runs on Convex's servers, not in Next.js.
+1. **The right instance.** The switcher at the top of the sidebar reads **Development**. None of this copies to Production later — promoting means redoing this phase by hand. That is a Clerk limitation, not an oversight here.
+2. **Your keys match.** `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` in `.env.local` starts with `pk_test_`.
+3. **You can reach the Convex dashboard too.** Needed in B3.8 for the webhook secret, which is a Convex environment variable, not a `.env.local` one.
 
 ---
 
-### B3.1 Enable Organizations, with membership optional
+### B3.1 Enable Organizations
 
 **Navigate:** Configure → **Organization Settings**
 
 | Setting | Value | Why |
 |---|---|---|
-| Enable organizations | **On** | Nothing else in this section appears until this is on. |
-| **Membership** | **`Membership optional`** | **The single most important setting in this phase.** |
-| Allow users to create organizations | **On** | Users self-serve their first workspace instead of waiting on you. |
-| Default role for new members | **Accountant** (set after B3.2 creates the role) | New invitees can keep books immediately but cannot touch billing or the team. |
-| Maximum allowed memberships | Leave at the default | The real cap comes from the subscription plan's seat limit, configured in B3.6. Setting it here too would override the plan and confuse the upgrade path. |
-| Verified domains | Off for now | Useful later for auto-joining by email domain; out of scope. |
+| Enable organizations | **On** | Nothing else appears until this is on. |
+| **Membership** | **`Membership optional`** | The single most important setting in this phase. |
+| Allow users to create organizations | **On** | Users self-serve their first workspace. |
+| Maximum allowed memberships | Leave default | The real cap comes from the plan's seat limit in B3.3. Setting it here too would override the plan. |
+| Verified domains | Off | Useful later for auto-join by email domain; out of scope. |
+| Creator role / Default role | **Come back in B3.6** | The roles do not exist yet. |
 
-**On `Membership optional`:** since 2025-08-22, Clerk defaults new instances to **Membership required**, which forces every signed-in user through a `choose-organization` session task and **disables personal accounts entirely**. If you leave that default, the personal-scope half of CashView silently cannot exist — users will be unable to reach the app without first creating an organization, and `<OrganizationSwitcher hidePersonal={false} />` will not offer a Personal Account entry no matter what props we pass it. Switch it to **optional** and confirm afterwards by signing in as a user with no organizations: you should land in the app, not on an org-selection screen.
-
----
-
-### B3.2 Roles
-
-**Navigate:** Configure → Organization Settings → **Roles** tab
-
-CashView uses three roles. One already exists and is relabelled; two are created new.
-
-#### Role 1 — Owner
-
-- **Key:** `org:admin` *(built-in — do not create a new one, edit the existing Admin role and change its name to Owner)*
-- **Name:** `Owner`
-- **Description:**
-
-> Complete, unrestricted control over this organization's CashView workspace. An Owner can do everything an Accountant can do, and in addition: invite new members by email address and revoke invitations that have not yet been accepted; remove existing members from the organization; change any member's role, including promoting another member to Owner; view and change the organization's subscription plan, update the payment method, and read the full billing history; edit the organization's profile, legal business name, registered address, and tax identification number; control invoice branding, including the uploaded logo, accent colour, and which invoice template is used; set the organization's base currency, default tax rate, invoice number prefix, and standard payment terms; and read the complete audit trail showing which member created, edited, or deleted every record, what changed, and exactly when. Clerk will refuse to remove or demote the last remaining Owner, so an organization can never be left without one. Assign this role only to the people who are genuinely accountable for the organization's finances and its subscription, because an Owner can start, upgrade, and cancel paid plans that charge the organization's payment method.
-
-#### Role 2 — Accountant
-
-- **Key:** `org:accountant` *(create)*
-- **Name:** `Accountant`
-- **Description:**
-
-> Full day-to-day bookkeeping access with no administrative authority. An Accountant can create, edit, duplicate, send, void, and delete invoices; add and remove line items and set quantities, unit prices, per-line tax rates, and invoice-level discounts; record full or partial payments against invoices and reverse a payment recorded in error; add, edit, archive, and delete clients along with their contact details and billing addresses; log expenses, upload and replace receipt images, run AI receipt scanning on plans that include it, and manage the organization's expense categories; create and maintain recurring invoice schedules on plans that include them; and read every financial report, including revenue, profit and loss, cash flow, outstanding versus collected, and expense breakdown by category. An Accountant cannot invite, remove, or re-role members; cannot see or change the subscription, payment method, or billing history; cannot edit organization settings or invoice branding; and cannot read the audit trail. This is the correct default for in-house finance staff, bookkeepers, and external accountants who need to keep the books accurate but should not control the account itself.
-
-#### Role 3 — Viewer
-
-- **Key:** `org:viewer` *(create)*
-- **Name:** `Viewer`
-- **Description:**
-
-> Strictly read-only access to the organization's finances. A Viewer can open and read any invoice, including its line items, tax breakdown, payment history, and current status; browse the client directory and see each client's invoice history and outstanding balance; view logged expenses, their categories, and any attached receipt images; and open every financial report and dashboard chart. A Viewer cannot create, edit, send, void, or delete anything anywhere in the application — every write is refused by the server itself, not merely hidden in the interface, so the restriction holds even against a hand-crafted request. A Viewer also cannot record payments, upload receipts, change any setting, manage members, see billing, or read the audit trail. Use this role for people who need visibility without the ability to change records: investors and advisors, an auditor during a review period, or a business partner who only needs to watch the numbers.
-
-#### A note on `org:member`
-
-Clerk ships a built-in `org:member` role that cannot be deleted. CashView does not use it. Convex maps it — and any other unrecognised role — to **Viewer**, so an unexpected role fails closed to the least privilege rather than falling open. Leave it in place and simply never assign it.
+**On `Membership optional`:** since 2025-08-22 Clerk defaults new instances to **Membership required**, which forces every signed-in user through a `choose-organization` task and **disables personal accounts entirely**. Leave that default and the personal-scope half of CashView silently cannot exist — `<OrganizationSwitcher hidePersonal={false} />` will not offer a Personal Account entry whatever props we pass. Afterwards, verify by signing in as a user with no organizations: you should land in the app, not on an org-selection screen.
 
 ---
 
-### B3.3 Permissions
-
-**Navigate:** Configure → Organization Settings → **Permissions** tab
-
-Because authorization is decoupled (architecture decision A3), **Convex does not read these**. Convex reads the role slug and applies its own capability matrix. These permissions exist so the Next.js layer can call `has({ permission })` for cosmetic gating — hiding a button a user could not successfully press anyway — and so the org roles read sensibly to anyone inspecting them in the Clerk dashboard.
-
-Create each with the key, name, and description exactly as given.
-
-| Key | Name |
-|---|---|
-| `org:invoices:manage` | Manage invoices |
-| `org:expenses:manage` | Manage expenses |
-| `org:clients:manage` | Manage clients |
-| `org:reports:read` | View financial reports |
-| `org:settings:manage` | Manage organization settings |
-| `org:audit:read` | View audit trail |
-
-**`org:invoices:manage` — Manage invoices**
-
-> Grants the ability to create new invoices; edit existing drafts; add and remove line items and set their descriptions, quantities, unit prices, and per-line tax rates; apply invoice-level discounts; choose the invoice template, issue date, and due date; mark an invoice as sent and generate the public share link a client can open without signing in; record full or partial payments against an invoice and reverse one entered in error; void an invoice that was issued in error while keeping it in the record for audit purposes; and permanently delete a draft that was never sent. Also covers creating and editing recurring invoice schedules on plans that include that feature. Without this permission a member holding a read role can still open and read invoices, but every write operation is refused.
-
-**`org:expenses:manage` — Manage expenses**
-
-> Grants the ability to log new expenses with a vendor, amount, tax component, date, and payment method; attach, replace, or remove receipt images in the organization's scoped file storage; trigger AI receipt scanning on plans that include it and accept or correct the values it extracts; assign and reassign expenses to categories; create, rename, recolour, and delete the organization's custom expense categories; mark an expense as billable and link it to a client so it can be rebilled; and edit or delete previously logged expenses. Receipt files uploaded under this permission are stored against this organization only and are unreachable from any other organization or personal account, including by direct URL.
-
-**`org:clients:manage` — Manage clients**
-
-> Grants the ability to add new clients with a contact name, company name, email address, phone number, and full billing address; edit any of those details later; set a client's invoicing currency, which on multi-currency plans determines the currency of invoices raised against them; attach internal notes to a client record that never appear on an invoice; archive a client so they stop appearing in pickers while their invoice history is preserved intact; restore a client from the archive; and permanently delete a client that has no invoices against them. Deleting a client who does have invoice history is refused by the server so that the books stay internally consistent and no invoice is ever orphaned.
-
-**`org:reports:read` — View financial reports**
-
-> Grants access to the reporting section: revenue totals broken down by month, quarter, and year; the outstanding-versus-collected comparison showing what has been invoiced against what has actually been paid; the profit and loss summary combining invoiced revenue against logged expenses over a chosen period; the expense breakdown by category; and the cash-flow visualisation showing money in from payments against money out from expenses over time. Also covers exporting any report's underlying figures. Note that this permission gates the reports surface, while the reporting capability itself is additionally gated by the subscription plan — a member who holds this permission on a Free plan will still be shown the upgrade prompt rather than the reports.
-
-**`org:settings:manage` — Manage organization settings**
-
-> Grants the ability to edit the settings that shape every document the organization issues: the legal business name, registered address, contact email, phone number, and tax identification number printed on invoices; the invoice branding, including the uploaded logo, accent colour, and which of the built-in invoice templates is used; the base currency for the organization's books; the default tax rate applied to new invoice line items; the invoice number prefix and the next sequence number; the default payment terms in days that drive due-date calculation; and the standing footer note printed at the bottom of every invoice. These settings affect invoices that have already been drafted as well as future ones, which is why the permission is restricted to Owners.
-
-**`org:audit:read` — View audit trail**
-
-> Grants access to the audit trail: the append-only record of every create, edit, delete, status change, payment, send, and settings change made inside this organization, showing which member performed the action, what changed from what to what, and the exact time it happened. This is the record used to answer questions like "who voided this invoice" or "when did this client's billing address change", so it is deliberately restricted to Owners by default. Granting it more widely is a legitimate choice when an external auditor needs self-service access, but be aware that it exposes the activity of every member to whoever holds it.
-
-#### Role → permission assignment
-
-Set these on each role's edit screen.
-
-| Permission | Owner | Accountant | Viewer |
-|---|:---:|:---:|:---:|
-| `org:invoices:manage` | ✓ | ✓ | — |
-| `org:expenses:manage` | ✓ | ✓ | — |
-| `org:clients:manage` | ✓ | ✓ | — |
-| `org:reports:read` | ✓ | ✓ | ✓ |
-| `org:settings:manage` | ✓ | — | — |
-| `org:audit:read` | ✓ | — | — |
-| `org:sys_memberships:manage` *(built-in)* | ✓ | — | — |
-| `org:sys_memberships:read` *(built-in)* | ✓ | ✓ | ✓ |
-| `org:sys_billing:manage` *(built-in)* | ✓ | — | — |
-| `org:sys_profile:manage` *(built-in)* | ✓ | — | — |
-
-**Known Clerk behaviour, and the reason Convex ignores all of this:** `has({ permission: 'org:invoices:manage' })` returns `false` unless a Billing *Feature* whose slug matches the permission's resource segment (`invoices`) is attached to the organization's active plan. Our feature slugs are deliberately product-shaped (`recurring_invoices`, `reports`, …) rather than resource-shaped, so these permission checks will read `false` on some plans even for an Owner. That is harmless here precisely because nothing security-relevant depends on them — but it is exactly the trap that would have made a permission-based Convex authorization model fail silently and intermittently.
-
----
-
-### B3.4 Enable Billing
+### B3.2 Enable Billing
 
 **Navigate:** Configure → **Billing** → Settings
 
 1. Click **Enable Billing**.
-2. When asked for a payment gateway, choose the **Clerk development gateway** (the shared test gateway). On a Development instance this requires **no Stripe account at all** and lets you run real checkouts with test cards. A production instance would instead require connecting your own Stripe account here.
-3. Clerk auto-creates two starter plans, `free_user` and `free_org`. Keep both — B3.6 and B3.7 repurpose them rather than creating duplicates.
+2. Choose the **Clerk development gateway**. On Development this needs **no Stripe account** and supports real checkouts with test cards. Production would require connecting your own Stripe account here.
+3. Clerk auto-creates two starter plans, `free_user` and `free_org`. Keep both — B3.3 repurposes them rather than creating duplicates.
 
-Test card for checkout flows on the dev gateway: `4242 4242 4242 4242`, any future expiry, any CVC.
+Test card: `4242 4242 4242 4242`, any future expiry, any CVC.
 
 ---
 
-### B3.5 Features
+### B3.3 Plans and Features
 
-**Navigate:** Configure → Billing → **Features**
+**Navigate:** Configure → Billing → **Plans**
 
-Create all four before touching plans — a plan can only attach a feature that already exists. **The slug is the exact string Convex stores and compares against**, so it must match character for character.
+Features are created and attached **inside each plan's edit page** (open a plan → Features → add). There is no global Features page. The first plan you edit is where each feature slug is born; every later plan reuses the same slug.
 
-**`recurring_invoices` — Recurring invoices**
+#### The nine features
 
-> Turn any invoice into a schedule that issues itself. Choose weekly, monthly, quarterly, or yearly, set a start date and an optional end date, and CashView generates each new invoice automatically on the due day with the line items, tax rates, and payment terms carried forward. Generated invoices arrive as drafts so they can be reviewed before sending, the schedule can be paused and resumed at any time, and invoice numbering continues in the same sequence as manually created invoices. Intended for retainers, subscriptions, and any client billed the same amount on a predictable cadence.
+Create these as you build the plans. **The slug is the exact string Convex stores and the exact middle segment of every permission in B3.4**, so it must match character for character.
+
+| Slug | Group | Free | Pro | Business |
+|---|---|:---:|:---:|:---:|
+| `invoices` | core | ✓ | ✓ | ✓ |
+| `expenses` | core | ✓ | ✓ | ✓ |
+| `clients` | core | ✓ | ✓ | ✓ |
+| `settings` | core | ✓ | ✓ | ✓ |
+| `audit` | core | ✓ | ✓ | ✓ |
+| `reports` | premium | — | ✓ | ✓ |
+| `recurring_invoices` | premium | — | ✓ | ✓ |
+| `receipt_scanning` | premium | — | — | ✓ |
+| `multi_currency` | premium | — | — | ✓ |
+
+The five core features go on **every** plan. That is not padding — omit `invoices` from Free and `org:invoices:manage` returns `false` for a Free Owner, and the product simply stops working.
+
+**`invoices` — Invoices**
+
+> Create and manage invoices: line items with quantities, unit prices and per-line tax, invoice-level discounts, issue and due dates, template choice, draft and send states, public share links your clients open without signing in, payment recording including partial payments, and voiding. Present on every plan, including Free, where a monthly invoice cap applies instead. The permissions inside this feature decide who may write rather than only read.
+
+**`expenses` — Expenses**
+
+> Log and manage business expenses: vendor, amount, tax component, date and payment method, with receipt images stored against your workspace and reachable from nowhere else. Includes custom expense categories, marking an expense billable against a client, and editing or deleting past entries. Present on every plan including Free, with no cap on how many expenses you log. Automatic receipt reading is a separate feature.
+
+**`clients` — Clients**
+
+> Maintain the client directory: contact name, company, email, phone and billing address, per-client invoicing currency, internal notes that never appear on an invoice, archiving that hides a client from pickers while preserving their history, and per-client invoice history with outstanding balance. Present on every plan, including Free, where a cap on total clients applies instead.
+
+**`settings` — Organization settings**
+
+> Control what appears on every document the workspace issues: legal business name, registered address, contact email and phone, tax identification number, invoice branding including logo, accent colour and template, base currency, default tax rate, invoice number prefix and next sequence, default payment terms, and the standing invoice footer. Present on every plan; the permission inside it decides who may change these rather than only read them.
+
+**`audit` — Audit trail**
+
+> The append-only record of activity in this workspace: every create, edit, delete, status change, payment, send and settings change, showing who did it, what changed from what to what, and when. This is what answers "who voided this invoice" or "when did this address change". Present on every plan so the record is always kept; the permission inside it decides who may read it.
 
 **`reports` — Financial reports**
 
-> The full reporting suite: revenue trends broken down by month, quarter, and year; a profit and loss summary that sets invoiced revenue against logged expenses for any period; cash-flow visualisation showing money received against money spent over time; an outstanding-versus-collected view that separates what has been billed from what has actually landed; and an expense breakdown by category. Every figure is computed server-side from the organization's own records and can be exported. Without this feature the dashboard still shows current balances, but the historical and analytical views are unavailable.
+> The full reporting suite: revenue by month, quarter and year; a profit and loss summary setting invoiced revenue against logged expenses; cash flow showing money received against money spent; outstanding versus collected, separating what was billed from what landed; and expense breakdown by category. Every figure is computed from your own records and can be exported. Without it the dashboard still shows live balances, but historical views are locked.
 
-**`ai_receipt_scanning` — AI receipt scanning**
+**`recurring_invoices` — Recurring invoices**
 
-> Photograph or upload a receipt and have CashView read it for you. The vendor name, transaction date, total amount, tax component, and the most likely expense category are extracted automatically and presented as a pre-filled expense you review, correct if needed, and confirm — nothing is ever saved without your approval. Works with photographs taken on a phone, scanned documents, and PDF receipts, and handles the common case of a crumpled or poorly lit receipt. Removes most of the typing from expense logging, which is where expense tracking usually breaks down.
+> Turn an invoice into a schedule that issues itself — weekly, monthly, quarterly or yearly, with a start date and an optional end. CashView generates each new invoice on the due day, carrying forward line items, tax rates and payment terms. Generated invoices arrive as drafts so you can review before sending, schedules pause and resume at any time, and numbering continues in the same sequence. Built for retainers and subscriptions.
+
+**`receipt_scanning` — AI receipt scanning**
+
+> Photograph or upload a receipt and CashView reads it for you. Vendor, date, total, tax and the likely category are extracted and presented as a pre-filled expense you review, correct and confirm — nothing saves without your approval. Handles phone photos, scans and PDF receipts, including crumpled or badly lit ones. Takes most of the typing out of expense logging, which is where expense tracking usually breaks down.
 
 **`multi_currency` — Multi-currency invoicing**
 
-> Invoice each client in their own currency while keeping your books in one base currency. Set a currency per client and every invoice raised against them is issued, displayed, and exported in that currency, with the exchange rate captured at issue time so historical invoices never silently change value. Reports and dashboard totals continue to be presented in your base currency, converted at the rate recorded on each invoice, so revenue across currencies remains directly comparable. Intended for anyone billing clients outside their home market.
+> Invoice each client in their own currency while your books stay in one base currency. Set a currency per client and every invoice against them is issued, shown and exported in it, with the exchange rate captured at issue time so historical invoices never silently change value. Reports and dashboard totals stay in your base currency, converted at each invoice's recorded rate, so revenue across currencies stays comparable.
 
----
+> **Note the rename:** the feature formerly called `ai_receipt_scanning` is now **`receipt_scanning`**, so that its permission reads `org:receipt_scanning:use` rather than the clumsier `org:ai_receipt_scanning:use`. Convex's `PLAN_LIMITS` in B4 uses the new slug.
 
-### B3.6 Organization Plans
+#### Organization Plans
 
 **Navigate:** Configure → Billing → Plans → **Organization Plans** tab
 
-This tab is for subscriptions **paid for by an organization and shared by everyone in it**. A plan's type is fixed at creation and cannot be changed afterwards — if you create one in the wrong tab you must delete it and start again, so check the tab heading before each one.
+Subscriptions paid by an organization and shared by everyone in it. A plan's type is fixed at creation — build one in the wrong tab and you must delete it and start over, so check the tab heading each time.
 
-#### Plan 1 — Free (organization)
+| Slug | Name | Price | Seats | Features |
+|---|---|---|---|---|
+| `free_org` *(exists — edit)* | Free | $0 | 1 | the 5 core |
+| `pro_org` *(create)* | Pro | $19/mo · $190/yr | 5 | core + `reports`, `recurring_invoices` |
+| `business_org` *(create)* | Business | $49/mo · $490/yr | 20 | all nine |
 
-- **Slug:** `free_org` *(already exists — edit it, do not create a second)*
-- **Name:** `Free`
-- **Price:** $0
-- **Seats / maximum members:** `1`
-- **Features attached:** none
-- **Description:**
+**`free_org`:**
 
-> Everything you need to send your first invoices, at no cost and with no card required. Includes up to 5 clients, up to 10 invoices per calendar month, unlimited expense logging with receipt uploads, PDF invoice generation, public share links your clients can open without signing in, and the live dashboard showing what you are owed and what you have collected. Limited to a single user, so it suits a solo operator trying CashView before committing. Recurring invoices, the reporting suite, AI receipt scanning, and multi-currency invoicing are not included. Your data is never held hostage — the client and invoice caps stop you creating more, they never lock you out of what you have already recorded.
+> Everything you need to send your first invoices, free and with no card. Up to 5 clients and 10 invoices per calendar month, unlimited expense logging with receipt uploads, PDF invoices, public share links your clients open without signing in, and a live dashboard of what you're owed and what you've collected. Single user. Reports, recurring invoices, receipt scanning and multi-currency are not included. Caps stop you adding more; they never lock you out of what you have.
 
-#### Plan 2 — Pro (organization)
+**`pro_org`:**
 
-- **Slug:** `pro_org` *(create)*
-- **Name:** `Pro`
-- **Price:** `$19` monthly / `$190` annual
-- **Seats / maximum members:** `5`
-- **Features attached:** `recurring_invoices`, `reports`
-- **Description:**
+> For a business that has outgrown spreadsheets. Removes every Free cap — unlimited clients, unlimited invoices — and adds up to 5 team members with their own logins and roles, so your bookkeeper and your accountant work in the same books without sharing a password. Adds recurring invoices for retainers, and the full reporting suite: revenue trends, profit and loss, cash flow and expense breakdown. Includes everything in Free. Annual works out at two months free.
 
-> For a growing business that has outgrown spreadsheets. Removes every cap on the Free plan — unlimited clients and unlimited invoices every month — and adds up to 5 team members, each with their own login and role, so your bookkeeper and your accountant can work in the same books without sharing a password. Adds recurring invoices for retainers and subscriptions, and unlocks the full reporting suite: revenue trends, profit and loss, cash flow, and expense breakdown by category. Includes everything in Free. Billed to the organization rather than to individual members, and the annual option works out at two months free.
+**`business_org`:**
 
-#### Plan 3 — Business (organization)
+> For established teams billing across borders and processing expenses at volume. Everything in Pro, a team limit of 20, and the two features that save the most time at scale: AI receipt scanning, which reads vendor, date, total, tax and category straight off a photo so expense logging stops being data entry; and multi-currency invoicing, so you bill each client in their currency while reports stay in one base currency. Billed to the organization, shared by every member.
 
-- **Slug:** `business_org` *(create)*
-- **Name:** `Business`
-- **Price:** `$49` monthly / `$490` annual
-- **Seats / maximum members:** `20`
-- **Features attached:** `recurring_invoices`, `reports`, `ai_receipt_scanning`, `multi_currency`
-- **Description:**
-
-> For established teams billing across borders and processing expenses at volume. Includes everything in Pro, raises the team limit to 20 members, and adds the two features that save the most time at scale: AI receipt scanning, which reads vendor, date, total, tax, and category straight off a photographed receipt so expense logging stops being data entry; and multi-currency invoicing, which lets you bill each client in their own currency while your reports stay in one base currency at the exchange rate captured when each invoice was issued. Billed to the organization and shared by every member.
-
-#### Seats — read this before setting the numbers
-
-- **Clerk enforces the seat cap itself**, at invite and join time. The application does not need its own blocking logic and this plan does not build any. The UI still *displays* the limit and how much of it is used, because an invite that fails with no warning is a bad experience.
-- **The price does not scale with members.** A seat-limited plan is a fixed price with a ceiling, not per-seat billing. Adding a fourth member to Pro does not change the bill; adding a sixth is refused until the organization upgrades.
-- **Caps above 20, or genuinely unlimited, require Clerk's paid B2B Authentication add-on.** That is why Business is set to 20 rather than unlimited on this Development instance. If you do not enable that add-on, Clerk's cap of 20 is the one that actually binds, so the UI must read the number off the plan rather than print the word "unlimited". Phase B4's `PLAN_LIMITS` records Business seats as `20` for this reason, with a comment pointing here.
-
----
-
-### B3.7 User Plans (personal scope)
+#### User Plans (personal scope)
 
 **Navigate:** Configure → Billing → Plans → **User Plans** tab
 
-This tab is for subscriptions **paid for by an individual and applying only to their personal workspace**. These are not optional extras. A freelancer who never creates an organization reaches the app entirely through personal scope, and without these plans that user would be permanently stuck on Free with no way to give you money.
+Subscriptions paid by an individual, applying only to their personal workspace. Not optional extras: a freelancer who never creates an organization lives entirely in personal scope, and without these could never upgrade — or pay you. Same features, priced lower because there is only ever one user. Seats do not apply.
 
-Create all three. Same features and same shape as the organization plans, priced lower because there is only ever one person using them.
+| Slug | Name | Price | Features |
+|---|---|---|---|
+| `free_user` *(exists — edit)* | Free | $0 | the 5 core |
+| `pro_user` *(create)* | Pro | $9/mo · $90/yr | core + `reports`, `recurring_invoices` |
+| `business_user` *(create)* | Business | $24/mo · $240/yr | all nine |
 
-#### Plan 1 — Free (personal)
+**`free_user`:**
 
-- **Slug:** `free_user` *(already exists — edit it)*
-- **Name:** `Free`
-- **Price:** $0
-- **Seats:** not applicable — personal scope is always exactly one person
-- **Features attached:** none
-- **Description:**
+> Start invoicing today, no card. Your personal workspace gets up to 5 clients, 10 invoices per calendar month, unlimited expense logging with receipt uploads, PDF invoices, and public share links your clients open without signing in. Ideal for a freelancer or side business trying CashView before paying for anything. Reports, recurring invoices, receipt scanning and multi-currency are not included. Your personal books stay separate from any organization you join.
 
-> Start invoicing today without a card. Your personal workspace includes up to 5 clients, up to 10 invoices per calendar month, unlimited expense logging with receipt uploads, PDF invoice generation, and public share links your clients can open without signing in. Ideal for a freelancer or side business finding out whether CashView fits before paying for anything. Recurring invoices, the reporting suite, AI receipt scanning, and multi-currency invoicing are not included. Your personal books stay entirely separate from any organization you later join or create.
+**`pro_user`:**
 
-#### Plan 2 — Pro (personal)
+> For the independent professional whose invoicing has become real work. Removes the client and monthly invoice caps, adds recurring invoices so retainer clients bill themselves on schedule, and unlocks the full reporting suite — revenue trends, profit and loss, cash flow and expense breakdown — which is what turns a pile of invoices into something you can hand an accountant at year end. Applies to your personal workspace only.
 
-- **Slug:** `pro_user` *(create)*
-- **Name:** `Pro`
-- **Price:** `$9` monthly / `$90` annual
-- **Features attached:** `recurring_invoices`, `reports`
-- **Description:**
+**`business_user`:**
 
-> For the independent professional whose invoicing has become real work. Removes the client and monthly invoice caps entirely, adds recurring invoices so retainer clients bill themselves on schedule, and unlocks the full reporting suite — revenue trends, profit and loss, cash flow, and expense breakdown by category — which is what turns a pile of invoices into something you can hand an accountant at year end. Includes everything in Free. Applies to your personal workspace only; if you also belong to an organization, that organization carries its own separate subscription.
+> For the established independent consultant working across currencies and expensing at volume. Everything in Pro, plus AI receipt scanning, which reads vendor, date, total, tax and category straight off a photographed receipt so logging takes seconds; and multi-currency invoicing, so you bill international clients in their own currency while your reports stay in one base currency at each invoice's recorded rate. Personal workspace only.
 
-#### Plan 3 — Business (personal)
+#### Seats — read before setting the numbers
 
-- **Slug:** `business_user` *(create)*
-- **Name:** `Business`
-- **Price:** `$24` monthly / `$240` annual
-- **Features attached:** `recurring_invoices`, `reports`, `ai_receipt_scanning`, `multi_currency`
-- **Description:**
-
-> For the established independent consultant working across currencies and expensing at volume. Includes everything in Pro and adds the two features that remove the most manual work: AI receipt scanning, which reads the vendor, date, total, tax, and category directly from a photographed receipt so logging an expense takes seconds rather than minutes; and multi-currency invoicing, which lets you bill international clients in their own currency while your own reports stay in one base currency at the rate captured when each invoice was issued. Applies to your personal workspace only.
+- **Clerk enforces the cap itself**, at invite and join time. The application needs no blocking logic and builds none. The UI still *displays* the limit and its usage, because an invite that fails silently is a bad experience.
+- **Price does not scale with members.** A seat-limited plan is a fixed price with a ceiling, not per-seat billing. A fourth member on Pro does not change the bill; a sixth is refused until the org upgrades.
+- **Caps above 20, or unlimited, require Clerk's paid B2B Authentication add-on.** Hence Business is 20 on this Development instance. Without the add-on Clerk's 20 is the number that binds, so the UI reads the value off the plan rather than printing "unlimited". B4's `PLAN_LIMITS` records `orgSeats: 20` for the same reason.
 
 ---
 
-### B3.8 How organization plans, members, and personal plans fit together
+### B3.4 Permissions, grouped by feature
+
+**Navigate:** Configure → Organization Settings → **Roles & Permissions** → Permissions
+
+Now that the feature slugs exist, the permissions inside them can be created. Each key is `org:<feature>:<action>` and **the feature segment must match a slug from B3.3 exactly**.
+
+#### System permissions — where Owner and Admin diverge
+
+Nine permissions are built into Clerk. Use them verbatim; do not invent shorter forms. The two bold rows are the entire Owner/Admin distinction.
+
+| System permission | Controls | Owner | Admin | Accountant | Viewer |
+|---|---|:---:|:---:|:---:|:---:|
+| `org:sys_profile:manage` | Edit org name, slug, logo | ✓ | ✓ | — | — |
+| **`org:sys_profile:delete`** | **Delete the organization** | **✓** | **—** | — | — |
+| `org:sys_memberships:read` | View the member list | ✓ | ✓ | ✓ | ✓ |
+| `org:sys_memberships:manage` | Invite, remove, re-role members | ✓ | ✓ | — | — |
+| `org:sys_domains:read` | View verified domains | ✓ | ✓ | — | — |
+| `org:sys_domains:manage` | Add, verify, remove domains | ✓ | — | — | — |
+| `org:sys_billing:read` | View subscription and invoices | ✓ | ✓ | — | — |
+| **`org:sys_billing:manage`** | **Change plan and payment method** | **✓** | **—** | — | — |
+| `org:sys_entconns:manage` | Manage self-serve SSO connections | ✓ | — | — | — |
+
+Admin keeps `org:sys_billing:read` deliberately: an Admin who cannot see which plan the organization is on has no way to understand why a feature is locked, and will just ask the Owner. Seeing the plan is not controlling it.
+
+**You will need to edit the built-in `org:admin` role to remove `org:sys_profile:delete`, `org:sys_domains:manage`, `org:sys_billing:manage` and `org:sys_entconns:manage`.** Clerk only documents a block on *deleting* a default role set as Creator or Default, and B3.6 moves Creator to Owner, so `org:admin` should be unpinned and editable.
+
+**Flagging honestly: Clerk's docs do not confirm either way that a built-in role's system permissions can be edited.** This is the one step in B3 I cannot promise will work. Try it; if the dashboard refuses any of those four toggles, stop and tell me. The fallback costs nothing — leave `org:admin` untouched, never assign it, and create a custom role `org:manager` named **Admin** carrying exactly the permissions in the matrix. Convex maps `admin` and `manager` onto the same capability set, so no backend change either way.
+
+#### Custom permissions
+
+Thirteen, grouped under the feature each belongs to. Convex does **not** read these (architecture decision A3) — it reads the role slug and applies its own matrix. They exist so the Next.js layer can call `has({ permission })` for UI gating and so the roles read correctly in the dashboard.
+
+##### Feature `invoices`
+
+| Key | Name | Owner | Admin | Accountant | Viewer |
+|---|---|:---:|:---:|:---:|:---:|
+| `org:invoices:read` | View invoices | ✓ | ✓ | ✓ | ✓ |
+| `org:invoices:manage` | Manage invoices | ✓ | ✓ | ✓ | — |
+
+> **View invoices.** Open any invoice and read its line items, quantities, unit prices, tax breakdown, discounts, issue and due dates, current status, payment history and public share link. Also covers the invoice list with its filters and the per-client invoice history. Read-only: holders can see every figure but cannot change, send, void or delete anything, and cannot record a payment.
+
+> **Manage invoices.** Create invoices; edit drafts; add and remove line items and set quantities, unit prices, per-line tax and discounts; choose template, issue date and due date; mark an invoice sent and mint its public share link; record and reverse full or partial payments; void an issued invoice while keeping it on record; and delete a draft that was never sent. Every write in the invoicing surface is refused without this.
+
+##### Feature `expenses`
+
+| Key | Name | Owner | Admin | Accountant | Viewer |
+|---|---|:---:|:---:|:---:|:---:|
+| `org:expenses:read` | View expenses | ✓ | ✓ | ✓ | ✓ |
+| `org:expenses:manage` | Manage expenses | ✓ | ✓ | ✓ | — |
+
+> **View expenses.** Browse logged expenses with their vendor, amount, tax component, date, payment method and category; open attached receipt images; and see which expenses are marked billable against a client. Read-only: holders cannot log, edit or delete an expense, cannot upload or replace a receipt, and cannot change categories.
+
+> **Manage expenses.** Log expenses with vendor, amount, tax, date and payment method; attach, replace and remove receipt images in the workspace's scoped storage; create, rename, recolour and delete expense categories; mark an expense billable against a client; and edit or delete past entries. Receipts stored here are unreachable from any other organization or personal account, including by direct URL.
+
+##### Feature `clients`
+
+| Key | Name | Owner | Admin | Accountant | Viewer |
+|---|---|:---:|:---:|:---:|:---:|
+| `org:clients:read` | View clients | ✓ | ✓ | ✓ | ✓ |
+| `org:clients:manage` | Manage clients | ✓ | ✓ | ✓ | — |
+
+> **View clients.** Browse the client directory and open any client to see their contact name, company, email, phone, billing address, invoicing currency, full invoice history and current outstanding balance. Includes archived clients. Read-only: holders cannot add, edit, archive or delete a client, and cannot see internal notes marked private.
+
+> **Manage clients.** Add clients with contact name, company, email, phone and billing address; edit those details; set a client's invoicing currency, which drives invoice currency where multi-currency is available; attach internal notes never shown on an invoice; archive a client so they leave the pickers while their history survives; restore from archive; and delete a client with no invoices. Deleting one with invoice history is refused so the books stay consistent.
+
+##### Feature `settings`
+
+| Key | Name | Owner | Admin | Accountant | Viewer |
+|---|---|:---:|:---:|:---:|:---:|
+| `org:settings:read` | View settings | ✓ | ✓ | ✓ | ✓ |
+| `org:settings:manage` | Manage settings | ✓ | ✓ | — | — |
+
+> **View settings.** See the workspace's business name, registered address, contact details, tax identification number, invoice branding, base currency, default tax rate, invoice numbering and payment terms. Useful for an accountant who needs to know the configured tax rate or numbering scheme without being able to alter it. Read-only in every respect.
+
+> **Manage settings.** Edit what appears on every document the workspace issues: legal business name, registered address, contact email and phone, tax identification number, invoice branding including logo, accent colour and template, base currency, default tax rate, invoice number prefix and next sequence, default payment terms driving due dates, and the standing invoice footer. These apply to already-drafted invoices as well as new ones.
+
+##### Feature `audit`
+
+| Key | Name | Owner | Admin | Accountant | Viewer |
+|---|---|:---:|:---:|:---:|:---:|
+| `org:audit:read` | View audit trail | ✓ | ✓ | — | — |
+
+> **View audit trail.** Read the append-only record of every create, edit, delete, status change, payment, send and settings change in this workspace, showing who did it, what changed from what to what, and when. This is what answers "who voided this invoice" or "when did this address change". Granting it beyond Owners and Admins is reasonable for an external auditor, but it exposes every member's activity to whoever holds it.
+
+##### Feature `reports` *(premium — Pro and Business only)*
+
+| Key | Name | Owner | Admin | Accountant | Viewer |
+|---|---|:---:|:---:|:---:|:---:|
+| `org:reports:read` | View financial reports | ✓ | ✓ | ✓ | ✓ |
+
+> **View financial reports.** Open the reporting section: revenue by month, quarter and year; outstanding versus collected; the profit and loss summary setting invoiced revenue against logged expenses; expense breakdown by category; and the cash-flow view of money in against money out. Includes exporting the underlying figures. Returns false for everyone on Free, because Free does not carry the reports feature.
+
+##### Feature `recurring_invoices` *(premium — Pro and Business only)*
+
+| Key | Name | Owner | Admin | Accountant | Viewer |
+|---|---|:---:|:---:|:---:|:---:|
+| `org:recurring_invoices:manage` | Manage recurring invoices | ✓ | ✓ | ✓ | — |
+
+> **Manage recurring invoices.** Create schedules that issue invoices automatically — weekly, monthly, quarterly or yearly — with a start date, an optional end date, and the line items, tax rates and payment terms that each generated invoice carries. Pause, resume, edit and delete schedules, and see which invoices a schedule produced. Returns false on Free, which does not carry the recurring invoices feature.
+
+##### Feature `receipt_scanning` *(premium — Business only)*
+
+| Key | Name | Owner | Admin | Accountant | Viewer |
+|---|---|:---:|:---:|:---:|:---:|
+| `org:receipt_scanning:use` | Use AI receipt scanning | ✓ | ✓ | ✓ | — |
+
+> **Use AI receipt scanning.** Run an uploaded or photographed receipt through automatic extraction, which reads the vendor, date, total, tax component and likely category and returns them as a pre-filled expense to review, correct and confirm. Nothing is saved without confirmation. Returns false on Free and Pro, which do not carry the receipt scanning feature.
+
+##### Feature `multi_currency` *(premium — Business only)*
+
+| Key | Name | Owner | Admin | Accountant | Viewer |
+|---|---|:---:|:---:|:---:|:---:|
+| `org:multi_currency:use` | Use multi-currency | ✓ | ✓ | ✓ | — |
+
+> **Use multi-currency.** Set an invoicing currency per client and issue invoices in it, with the exchange rate captured at issue time so historical invoices never silently change value, while reports and dashboard totals stay in the workspace's base currency. Returns false on Free and Pro, which do not carry the multi-currency feature.
+
+---
+
+### B3.5 Roles
+
+**Navigate:** Configure → Organization Settings → **Roles & Permissions** → Roles
+
+Four roles. Owner and Admin are genuinely different: an Admin *runs* the organization, an Owner *owns* it. The line is money and existence, and Clerk makes it real through `org:sys_billing:manage` and `org:sys_profile:delete`. That is why we do not reuse `org:admin` for Owner — we create a real `org:owner` and leave `org:admin` meaning what its key has always meant.
+
+Assign each role the permissions marked for it in every table in B3.4.
+
+#### Owner — `org:owner` *(create)*
+
+> Ultimate authority over the organization. Everything an Admin can do, plus the three things that are irreversible or cost money: choosing and changing the subscription plan, updating the payment method, and reading billing history; transferring ownership to another member; and deleting the organization outright. Assign only to people accountable for the money. An organization always keeps at least one Owner.
+
+#### Admin — `org:admin` *(built-in — keep the key and the name, replace the description)*
+
+> Runs the organization day to day without controlling the money. Everything an Accountant can do, plus: invite, remove and re-role members; edit company details, tax ID, invoice branding, currency, tax rates and numbering; and read the full audit trail. Can see which plan the organization is on, but cannot change the plan, the payment method or billing history, cannot transfer ownership, and cannot delete the organization.
+
+#### Accountant — `org:accountant` *(create)*
+
+> Full bookkeeping, no administration. Create, edit, send, void and delete invoices; record and reverse payments; add, edit and archive clients; log expenses, upload receipts and run receipt scanning; manage recurring schedules; and read every report. Cannot manage members, change settings or branding, see billing, or read the audit trail. The right default for in-house finance staff and external accountants.
+
+#### Viewer — `org:viewer` *(create)*
+
+> Read-only access to the books. Open invoices with their line items and payment history, browse clients and outstanding balances, view expenses and receipts, and read every report and dashboard chart. Every write is refused by the server, not merely hidden in the interface. Cannot record payments, upload anything, change settings, manage members, see billing, or read the audit trail. For investors, advisors and auditors.
+
+#### On `org:member`
+
+Built in and undeletable. CashView does not use it. Convex maps it — and any unrecognised role — to **Viewer**, so an unexpected role fails closed. Leave it and never assign it.
+
+Three custom roles against Clerk's limit of **10 per instance**.
+
+---
+
+### B3.6 Return to Organization Settings for the role defaults
+
+**Navigate:** Configure → **Organization Settings**
+
+Now that the roles exist:
+
+| Setting | Value |
+|---|---|
+| **Creator role** | **Owner** — open the role's three-dot menu → **"Set as creator role."** |
+| **Default role** for invitees | **Accountant** — three-dot menu → **"Set as default role."** |
+
+Clerk requires the creator role to carry at minimum `org:sys_memberships:manage`, `org:sys_memberships:read` and `org:sys_profile:delete`. Owner holds all nine system permissions, so it qualifies. Clerk's docs explicitly support reassigning the creator role to any qualifying role, precisely so teams are not stuck with `org:admin`.
+
+Setting Creator to Owner is also what unpins `org:admin` and makes B3.4's permission edits possible. If you did B3.4 first and the toggles were locked, come back and retry them now.
+
+**Verify:** create a throwaway organization from the app. You should be its **Owner**, not its Admin.
+
+#### One honest limitation
+
+Clerk's membership management is all-or-nothing. Any role holding `org:sys_memberships:manage` can re-role or remove **anyone**, including an Owner — Clerk has no "cannot modify a higher role" concept. So through `<OrganizationProfile />`, an Admin can demote an Owner.
+
+Two options, your call at Phase F7:
+
+1. **Accept it.** Admin is a trusted role and the audit trail records the change. Simplest, fine for most teams.
+2. **Close it.** Replace the members tab with a custom UI backed by a Convex action calling the Clerk Backend API, refusing any change targeting an Owner unless the caller is an Owner. Roughly a day in F7.
+
+I have planned for option 1 and will raise it again when F7 starts.
+
+---
+
+### B3.7 How organization plans, members, and personal plans fit together
 
 This is the part that is easy to get wrong, so it is worth stating explicitly.
 
@@ -575,7 +693,7 @@ Nothing about your personal plan upgrades the organization. This is correct and 
 
 ---
 
-### B3.9 Webhooks — Clerk → Convex
+### B3.8 Webhooks — Clerk → Convex
 
 Everything in `subscriptions`, `users`, `organizations`, and `memberships` arrives through this endpoint. If it is not configured, the application will authenticate perfectly well and then behave as though every scope is on Free forever, because `getEntitlements` defaults to Free when no synced subscription row exists. **This is the step most likely to be skipped and most likely to cost an afternoon.**
 
@@ -654,7 +772,7 @@ Each of these has cost somebody a debugging session:
 
 ---
 
-### B3.10 Confirm the session token carries the organization claim
+### B3.9 Confirm the session token carries the organization claim
 
 **Navigate:** Configure → **Sessions** → Customize session token
 
@@ -664,19 +782,24 @@ Do **not** add `{{org.id}}` / `{{org.role}}` as custom top-level claims. That du
 
 ---
 
-### B3.11 Verification checklist
+### B3.10 Verification checklist
 
 Tick these off before opening the B3 PR. I will independently read the configuration back through the Clerk Backend API and include the diff in the PR description.
 
 - [ ] Organizations enabled, membership mode reads **optional**
 - [ ] Signing in as a user with zero organizations lands in the app, not on an org-selection screen
-- [ ] Three roles exist: `org:admin` renamed Owner, `org:accountant`, `org:viewer`, each with its full description pasted
-- [ ] Six custom permissions exist and are assigned per the matrix in B3.3
-- [ ] Default role for new members is Accountant
 - [ ] Billing enabled on the Clerk development gateway
-- [ ] Four features exist with slugs spelled exactly `recurring_invoices`, `reports`, `ai_receipt_scanning`, `multi_currency`
-- [ ] Three **organization** plans: `free_org`, `pro_org`, `business_org`, with seats 1 / 5 / 20 and the right features attached
-- [ ] Three **user** plans: `free_user`, `pro_user`, `business_user`, with the right features attached
+- [ ] **Nine features exist**, spelled exactly: `invoices`, `expenses`, `clients`, `settings`, `audit`, `reports`, `recurring_invoices`, `receipt_scanning`, `multi_currency`
+- [ ] **The five core features are attached to every plan, Free included** — this is the one that breaks the product if missed
+- [ ] Three **organization** plans: `free_org`, `pro_org`, `business_org`, seats 1 / 5 / 20, features per the B3.3 grid
+- [ ] Three **user** plans: `free_user`, `pro_user`, `business_user`, features per the B3.3 grid
+- [ ] **Thirteen custom permissions exist**, every one's middle segment matching a feature slug from B3.3
+- [ ] Four roles exist: `org:owner` (created), `org:admin` (kept as Admin), `org:accountant`, `org:viewer`, each with its description pasted and its permissions assigned
+- [ ] `org:admin` no longer holds `org:sys_profile:delete`, `org:sys_domains:manage`, `org:sys_billing:manage`, or `org:sys_entconns:manage` — **or**, if the dashboard refused, the `org:manager` fallback from B3.4 is in place instead
+- [ ] **Owner is set as the Creator Role** — create a throwaway org and confirm you are its Owner, not its Admin
+- [ ] Default role for invitees is Accountant
+- [ ] Signed in as an Admin, check `<OrganizationProfile />`: Clerk's docs do not say whether removing `org:sys_billing:manage` *hides* the billing controls or merely disables them, so note which you observe. If only disabled, F7 renders its own billing tab gated on the capability instead of relying on Clerk's component.
+- [ ] Spot-check the coupling: as a Free Owner, `has({ permission: 'org:reports:read' })` is `false`; as a Pro Owner it is `true`. If it is false on Pro, the `reports` feature is not attached to `pro_org`.
 - [ ] Webhook endpoint points at the **`.site`** domain and is subscribed to all fourteen events
 - [ ] `CLERK_WEBHOOK_SECRET` set in **Convex** env and confirmed by `npx convex env list`
 - [ ] A test event returns 200 and appears in `npx convex logs`
@@ -692,17 +815,22 @@ Tick these off before opening the B3 PR. I will independently read the configura
 `convex/lib/entitlements.ts` holding the single source of truth:
 
 ```ts
+// The five core features ride on every plan, Free included. They exist so Clerk permissions
+// like `org:invoices:manage` resolve at all — a permission whose feature is missing from the
+// plan always reads false. See B3.3.
+const CORE = ["invoices", "expenses", "clients", "settings", "audit"] as const;
+
 // Keyed by planKey, which the webhook derives from the Clerk plan slug:
 //   free_org | free_user -> "free"   pro_org | pro_user -> "pro"   business_org | business_user -> "business"
 // The same limits apply whether the payer is an organization or a user; only `seats` differs,
 // and in personal scope seats is always 1 because a personal workspace has exactly one member.
 const PLAN_LIMITS = {
-  free:     { clients: 5,        invoicesPerMonth: 10,       orgSeats: 1,  features: [] },
-  pro:      { clients: Infinity, invoicesPerMonth: Infinity, orgSeats: 5,  features: ["recurring_invoices", "reports"] },
+  free:     { clients: 5,        invoicesPerMonth: 10,       orgSeats: 1,  features: [...CORE] },
+  pro:      { clients: Infinity, invoicesPerMonth: Infinity, orgSeats: 5,  features: [...CORE, "reports", "recurring_invoices"] },
   // orgSeats 20, not Infinity: Clerk caps seats at 20 without the paid B2B Authentication
   // add-on (see B3.6), so Clerk's number is the one that actually binds. The UI reads this
   // value rather than printing the word "unlimited".
-  business: { clients: Infinity, invoicesPerMonth: Infinity, orgSeats: 20, features: ["recurring_invoices", "reports", "ai_receipt_scanning", "multi_currency"] },
+  business: { clients: Infinity, invoicesPerMonth: Infinity, orgSeats: 20, features: [...CORE, "reports", "recurring_invoices", "receipt_scanning", "multi_currency"] },
 } as const;
 ```
 
@@ -764,7 +892,7 @@ Gated on the `reports` feature. Revenue by month/quarter/year, outstanding vs co
 **Branch:** `feat/b9-recurring-and-ai`
 
 - **Recurring** — gated on `recurring_invoices`. Daily `crons.cron("0 2 * * *", ...)` → `internalMutation` scanning `by_active_and_next_run`, generating invoices as drafts, advancing `nextRunAt`. Quota still applies. Batched with `ctx.scheduler.runAfter` continuation rather than one unbounded pass.
-- **OCR** — gated on `ai_receipt_scanning`. A `"use node"` action in its own file (the guidelines forbid mixing `"use node"` with queries/mutations) that pulls the receipt from storage, base64-encodes it, and calls OpenRouter with a JSON-schema-constrained prompt. Free vision models tried in order: `qwen/qwen2.5-vl-72b-instruct:free` → `meta-llama/llama-3.2-11b-vision-instruct:free` → `google/gemini-2.0-flash-exp:free`. Extracted vendor/date/total/tax/category are written back as a **suggestion the user confirms**, never silently applied. `OPENROUTER_API_KEY` goes in Convex env.
+- **OCR** — gated on `receipt_scanning`. A `"use node"` action in its own file (the guidelines forbid mixing `"use node"` with queries/mutations) that pulls the receipt from storage, base64-encodes it, and calls OpenRouter with a JSON-schema-constrained prompt. Free vision models tried in order: `qwen/qwen2.5-vl-72b-instruct:free` → `meta-llama/llama-3.2-11b-vision-instruct:free` → `google/gemini-2.0-flash-exp:free`. Extracted vendor/date/total/tax/category are written back as a **suggestion the user confirms**, never silently applied. `OPENROUTER_API_KEY` goes in Convex env.
 
 ---
 
@@ -843,7 +971,7 @@ An `internalMutation` invoked via `npx convex run`, taking org ids as arguments 
 | **NVIDIA Graphics** | Business | Similar volume plus multi-currency invoices (EUR/GBP/JPY) and receipts with OCR results attached, exercising the Business-only features. |
 | **Personal scope** ×2 | Free and Pro | A small freelance dataset on each of `atharvabakale13@gmail.com` and `bakaleatharva13@gmail.com`. One is left on Free and one put on `pro_user`, which makes B3.8's rule directly observable: the Pro personal account still hits Free limits the moment it switches into Acme Inc. |
 
-Both emails get membership in all three orgs with **different roles** — Owner in one, Accountant in another, Viewer in the third — so you can see the permission matrix behave without juggling accounts. Amounts follow a realistic seasonal curve rather than being uniformly random, and every row carries a plausible `_creationTime` so the reports have something honest to draw.
+Both emails get membership in all three orgs with **different roles**, arranged so all four roles are reachable from a single login. `atharvabakale13@gmail.com` is Owner of Atharva Bakale Industries, Admin of NVIDIA Graphics, and Viewer of Acme Inc.; `bakaleatharva13@gmail.com` is Owner of Acme Inc., Accountant of Atharva Bakale Industries, and Admin of NVIDIA Graphics. Switching organizations in the switcher is therefore enough to exercise the whole matrix — including the Owner/Admin split, since the first account can change the plan in one org and only read it in another. Amounts follow a realistic seasonal curve rather than being uniformly random, and every row carries a plausible `_creationTime` so the reports have something honest to draw.
 
 ---
 
@@ -854,7 +982,7 @@ Per phase: `pnpm lint` and `pnpm build` clean, `npx convex dev` deploying withou
 End-to-end, once Part I is merged:
 
 1. **Isolation** — signed in as a member of Acme, call every Convex query and mutation with ids belonging to NVIDIA Graphics. Every one must refuse. This is run directly against Convex, not through the UI, because the UI proves nothing about the server.
-2. **Roles** — as Viewer, every write is refused server-side; as Accountant, settings and billing are refused; as Owner, everything is permitted.
+2. **Roles** — as Viewer, every write is refused server-side; as Accountant, settings, members, and billing are refused; **as Admin, settings and members succeed but billing, org deletion, and ownership transfer are refused**; as Owner, everything is permitted. The Admin case is the one that proves the new split, so it is tested against Convex directly rather than by looking at the UI.
 3. **Quotas** — on Acme (Free), the 6th client and 11th invoice are refused with `UPGRADE_REQUIRED`; upgrading it in Clerk makes both succeed once the webhook lands.
 4. **Features** — recurring invoices and OCR are refused on Acme and succeed on NVIDIA Graphics.
 5. **Public link** — the invoice link opens in a logged-out browser, shows only that invoice, and flips its status to Viewed exactly once.
@@ -873,7 +1001,7 @@ Each row is one PR against `master`. Nothing starts until the previous one is me
 | 0 | `chore/phase-0-foundation` | Font fix, lint fix, Convex provider, middleware, `convex-helpers` + `svix` |
 | B1 | `feat/b1-schema-tenancy` | Identity probe, schema, `convex-helpers` scope wrappers + RLS + triggers, isolation tests |
 | B2 | `feat/b2-clerk-sync` | Webhook httpAction and sync mutations |
-| B3 | `docs/b3-clerk-config` | Clerk setup manual: orgs, roles, permissions, org plans, **user plans**, webhooks |
+| B3 | `docs/b3-clerk-config` | Clerk setup manual: orgs, four roles (Owner ≠ Admin), permissions, org plans, **user plans**, webhooks |
 | B4 | `feat/b4-entitlements-quotas` | Plan limits, feature gates, usage counters, audit |
 | B5 | `feat/b5-clients` | Client CRUD |
 | B6 | `feat/b6-invoices` | Invoices, payments, public link, overdue cron |
@@ -900,5 +1028,6 @@ Each row is one PR against `master`. Nothing starts until the previous one is me
 - **Clerk Billing is experimental.** Clerk's own docs say to pin `@clerk/nextjs` and `clerk-js`. Phase 0 pins them; a minor bump could still move the checkout API.
 - **Dev-instance plans do not migrate to production.** Everything in B3 is re-done by hand against the production instance later. Budget for it; it is not a script.
 - **The identity claim shape is unverified until B1.0 runs.** If Convex flattens `o` differently than expected, `requireScope()` changes shape — cheap at B1, expensive later. That is exactly why the probe is the first task rather than an assumption.
+- **Custom organization roles are free in development but require Clerk's paid B2B Authentication add-on in production.** The whole four-role model — `org:owner`, `org:accountant`, `org:viewer` — costs nothing on this Development instance and becomes a paid line item the day you promote. The same add-on gates seat caps above 20. It changes nothing we build, since Convex derives capability from the role slug and would map a reduced role set just as happily, but it is a real cost attached to a design decision and better known now than at launch.
 - **`convex-helpers` is pre-1.0 (v0.1.124).** Its API has been stable in practice but the version number is honest about the guarantee. It is pinned exactly in Phase 0, and the surface we depend on is small and concentrated in `convex/lib/` — if a breaking change ever lands, three files absorb it rather than the whole backend.
 - **OpenRouter free models are rate-limited and occasionally withdrawn.** The three-model fallback chain and a clean "scan failed, enter it manually" path are part of B9, not an afterthought.
