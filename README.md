@@ -147,7 +147,7 @@ Built backend first, then frontend, one branch and pull request per phase.
 | B6 | Invoices, payments, public link | Done |
 | B7 | Expenses and receipt storage | Done |
 | B8 | Reports | Done |
-| B9 | Recurring invoices and AI receipt scanning | Next |
+| B9 | Recurring invoices and AI receipt scanning | Done |
 | F0 to F8 | Design direction, app shell, dashboard, feature UIs, billing and settings, final review | |
 | S | Seed data | |
 
