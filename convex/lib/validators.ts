@@ -32,6 +32,18 @@ export const vOcrStatus = literals("none", "pending", "done", "failed");
 
 export const vAuditAction = literals("create", "update", "delete");
 
+/** Fields a receipt scan proposes for an expense. Every one is optional. */
+export const vOcrSuggestion = v.object({
+  vendor: v.optional(v.string()),
+  spentAt: v.optional(v.number()),
+  amountCents: v.optional(v.number()),
+  taxCents: v.optional(v.number()),
+  currency: v.optional(v.string()),
+  categoryId: v.optional(v.id("expenseCategories")),
+  /** The model that produced it. */
+  model: v.string(),
+});
+
 /** A postal address: a business's own, or a client's billing address. */
 export const vAddress = v.object({
   line1: v.string(),

@@ -5,6 +5,7 @@ import {
   vAuditAction,
   vInvoiceStatus,
   vOcrStatus,
+  vOcrSuggestion,
   vPlanKey,
   vRecurringFrequency,
   vScopeKind,
@@ -210,6 +211,11 @@ export default defineSchema({
     paymentTermsDays: v.number(),
     discountCents: v.number(),
     notes: v.optional(v.string()),
+    // What the last scheduled run did, so a template that stopped generating
+    // can say why.
+    lastRunAt: v.optional(v.number()),
+    lastInvoiceId: v.optional(v.id("invoices")),
+    lastError: v.optional(v.string()),
   })
     .index("by_scopeId_and_clientId", ["scopeId", "clientId"])
     // UNSCOPED: the daily cron scans due templates across every tenant. Only
@@ -243,6 +249,10 @@ export default defineSchema({
     receiptStorageId: v.optional(v.id("_storage")),
     ocrStatus: vOcrStatus,
     ocrRaw: v.optional(v.string()), // raw model output, kept for debugging
+    // A scan only ever proposes; the user confirms (applyScan) or dismisses.
+    ocrSuggestion: v.optional(vOcrSuggestion),
+    ocrError: v.optional(v.string()),
+    ocrStartedAt: v.optional(v.number()), // when a scan began; lets a stuck one be retried
     isBillable: v.boolean(),
     clientId: v.optional(v.id("clients")),
   })
