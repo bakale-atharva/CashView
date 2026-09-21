@@ -10,18 +10,27 @@
 
 import type * as audit from "../audit.js";
 import type * as clients from "../clients.js";
+import type * as crons from "../crons.js";
 import type * as http from "../http.js";
+import type * as invoices from "../invoices.js";
+import type * as invoicesCron from "../invoicesCron.js";
 import type * as lib_clerkEvents from "../lib/clerkEvents.js";
 import type * as lib_clientInput from "../lib/clientInput.js";
+import type * as lib_currency from "../lib/currency.js";
 import type * as lib_entitlements from "../lib/entitlements.js";
+import type * as lib_errors from "../lib/errors.js";
 import type * as lib_functions from "../lib/functions.js";
+import type * as lib_invoiceMath from "../lib/invoiceMath.js";
+import type * as lib_invoiceStatus from "../lib/invoiceStatus.js";
 import type * as lib_period from "../lib/period.js";
 import type * as lib_plans from "../lib/plans.js";
+import type * as lib_publicToken from "../lib/publicToken.js";
 import type * as lib_scope from "../lib/scope.js";
 import type * as lib_scopeDefaults from "../lib/scopeDefaults.js";
 import type * as lib_tables from "../lib/tables.js";
 import type * as lib_triggers from "../lib/triggers.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as public_ from "../public.js";
 import type * as sync from "../sync.js";
 import type * as usage from "../usage.js";
 
@@ -34,18 +43,27 @@ import type {
 declare const fullApi: ApiFromModules<{
   audit: typeof audit;
   clients: typeof clients;
+  crons: typeof crons;
   http: typeof http;
+  invoices: typeof invoices;
+  invoicesCron: typeof invoicesCron;
   "lib/clerkEvents": typeof lib_clerkEvents;
   "lib/clientInput": typeof lib_clientInput;
+  "lib/currency": typeof lib_currency;
   "lib/entitlements": typeof lib_entitlements;
+  "lib/errors": typeof lib_errors;
   "lib/functions": typeof lib_functions;
+  "lib/invoiceMath": typeof lib_invoiceMath;
+  "lib/invoiceStatus": typeof lib_invoiceStatus;
   "lib/period": typeof lib_period;
   "lib/plans": typeof lib_plans;
+  "lib/publicToken": typeof lib_publicToken;
   "lib/scope": typeof lib_scope;
   "lib/scopeDefaults": typeof lib_scopeDefaults;
   "lib/tables": typeof lib_tables;
   "lib/triggers": typeof lib_triggers;
   "lib/validators": typeof lib_validators;
+  public: typeof public_;
   sync: typeof sync;
   usage: typeof usage;
 }>;
