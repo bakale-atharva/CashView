@@ -4,6 +4,8 @@
 // than one dot, so these never exist on a real deployment. They are reached
 // from tests through makeFunctionReference, not the generated `api`.
 import { v } from "convex/values";
+import { literals } from "convex-helpers/validators";
+import { requireFeature } from "./lib/entitlements";
 import {
   getInScope,
   internalScopedMutation,
@@ -14,6 +16,18 @@ import {
 import { requireCapability } from "./lib/scope";
 import { vInvoiceStatus } from "./lib/validators";
 import type { Scope } from "./lib/validators";
+
+const vFeature = literals(
+  "invoices",
+  "expenses",
+  "clients",
+  "settings",
+  "audit",
+  "reports",
+  "recurring_invoices",
+  "receipt_scanning",
+  "multi_currency",
+);
 
 const clientDoc = (scope: Pick<Scope, "scopeId" | "scopeKind">, name: string) => ({
   scopeId: scope.scopeId,
@@ -213,6 +227,34 @@ export const deletePayment = scopedMutation({
   args: { id: v.id("payments") },
   handler: async (ctx, { id }) => {
     await ctx.db.delete("payments", id);
+  },
+});
+
+/** Inserts a recurring template. Contains no plan check of its own. */
+export const createRecurring = scopedMutation({
+  args: { clientId: v.id("clients") },
+  handler: async (ctx, { clientId }) => {
+    return await ctx.db.insert("recurringInvoices", {
+      scopeId: ctx.scope.scopeId,
+      scopeKind: ctx.scope.scopeKind,
+      clientId,
+      frequency: "monthly",
+      startDate: 0,
+      nextRunAt: 0,
+      isActive: true,
+      currency: "USD",
+      paymentTermsDays: 30,
+      discountCents: 0,
+    });
+  },
+});
+
+/** Stands in for a query gated on a premium feature (e.g. reports). */
+export const gate = scopedQuery({
+  args: { feature: vFeature },
+  handler: async (ctx, { feature }) => {
+    const entitlements = await requireFeature(ctx, feature);
+    return entitlements.planKey;
   },
 });
 

@@ -2,6 +2,7 @@ import { ConvexError } from "convex/values";
 import { Triggers } from "convex-helpers/server/triggers";
 import type { DataModel, Doc, Id } from "../_generated/dataModel";
 import type { DatabaseWriter } from "../_generated/server";
+import { monthOf } from "./period";
 import { WRITABLE_TENANT_TABLES } from "./tables";
 import type { Scope, UsageMetric } from "./validators";
 
@@ -183,10 +184,6 @@ for (const table of Object.keys(AUDITED) as AuditedTable[]) {
 // --- Usage counters --------------------------------------------------------
 // Exact counts for quotas; Convex has no count operator and the guidelines
 // forbid `.collect().length`.
-
-function monthOf(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 7);
-}
 
 async function bumpCounter(
   db: DatabaseWriter,
