@@ -1,6 +1,7 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import {
+  vAddress,
   vAuditAction,
   vInvoiceStatus,
   vOcrStatus,
@@ -23,15 +24,6 @@ const scoped = {
   scopeId: v.string(),
   scopeKind: vScopeKind,
 };
-
-const address = v.object({
-  line1: v.string(),
-  line2: v.optional(v.string()),
-  city: v.string(),
-  region: v.optional(v.string()),
-  postalCode: v.optional(v.string()),
-  country: v.string(),
-});
 
 export default defineSchema({
   // --- Synced from Clerk (written only by webhook handlers) ---------------
@@ -97,7 +89,7 @@ export default defineSchema({
     ...scoped,
     // Business identity
     businessName: v.optional(v.string()),
-    address: v.optional(address),
+    address: v.optional(vAddress),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
     taxId: v.optional(v.string()),
@@ -120,7 +112,7 @@ export default defineSchema({
     company: v.optional(v.string()),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
-    billingAddress: v.optional(address),
+    billingAddress: v.optional(vAddress),
     notes: v.optional(v.string()),
     currency: v.string(),
     isArchived: v.boolean(),
