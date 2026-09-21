@@ -144,10 +144,10 @@ Built backend first, then frontend, one branch and pull request per phase.
 | B3 | Clerk dashboard configuration guide | Skipped for now |
 | B4 | Entitlements, quotas, feature gates | Done |
 | B5 | Clients | Done |
-| B6 | Invoices, payments, public link | In progress |
-| B7 | Expenses and receipt storage | |
-| B8 | Reports | |
-| B9 | Recurring invoices and AI receipt scanning | |
+| B6 | Invoices, payments, public link | Done |
+| B7 | Expenses and receipt storage | Done |
+| B8 | Reports | Done |
+| B9 | Recurring invoices and AI receipt scanning | Next |
 | F0 to F8 | Design direction, app shell, dashboard, feature UIs, billing and settings, final review | |
 | S | Seed data | |
 
