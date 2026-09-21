@@ -32,6 +32,16 @@ export const vOcrStatus = literals("none", "pending", "done", "failed");
 
 export const vAuditAction = literals("create", "update", "delete");
 
+/** A postal address: a business's own, or a client's billing address. */
+export const vAddress = v.object({
+  line1: v.string(),
+  line2: v.optional(v.string()),
+  city: v.string(),
+  region: v.optional(v.string()),
+  postalCode: v.optional(v.string()),
+  country: v.string(),
+});
+
 /** The resolved tenant + actor. Produced by requireScope(), never sent by clients. */
 export const vScope = v.object({
   scopeId: v.string(),
