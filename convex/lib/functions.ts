@@ -24,6 +24,7 @@ import type {
   MutationCtx,
   QueryCtx,
 } from "../_generated/server";
+import { assertQuota, requireFeature } from "./entitlements";
 import { requireScope } from "./scope";
 import type { TenantTable } from "./tables";
 import { triggers } from "./triggers";
@@ -41,7 +42,9 @@ import type { Scope } from "./validators";
  * data now takes two separate mistakes.
  */
 
-type RuleCtx = { scope: Scope };
+// `db` is the unwrapped reader, for rules that must look something up (the
+// plan and usage counters). Rules do not apply recursively to their own reads.
+type RuleCtx = { scope: Scope; db: DatabaseReader };
 type Tenanted = { scopeId: string; scopeKind?: Scope["scopeKind"] };
 
 const inScope = async ({ scope }: RuleCtx, doc: Tenanted) =>
@@ -53,14 +56,29 @@ const readWrite = { read: inScope, modify: inScope, insert: inScope };
 // Written elsewhere (webhook sync, triggers); scoped functions may only read.
 const readOnly = { read: inScope, modify: never, insert: never };
 
+/**
+ * An insert that must also clear a plan check. Runs after the scope check, so
+ * a foreign-scope insert still fails as "not allowed", and before the write,
+ * so a refused insert leaves nothing behind. Because it lives here rather
+ * than in each mutation, no write path (user, cron, webhook) can skip it.
+ */
+const insertIf = (check: (ctx: RuleCtx) => Promise<unknown>) => ({
+  ...readWrite,
+  insert: async (ctx: RuleCtx, doc: Tenanted) => {
+    if (!(await inScope(ctx, doc))) return false;
+    await check(ctx);
+    return true;
+  },
+});
+
 const rules: Rules<RuleCtx, DataModel> = {
   scopeSettings: readWrite,
-  clients: readWrite,
-  invoices: readWrite,
+  clients: insertIf((ctx) => assertQuota(ctx, "clients")),
+  invoices: insertIf((ctx) => assertQuota(ctx, "invoices")),
   invoiceLineItems: readWrite,
   payments: readWrite,
-  recurringInvoices: readWrite,
-  recurringLineItems: readWrite,
+  recurringInvoices: insertIf((ctx) => requireFeature(ctx, "recurring_invoices")),
+  recurringLineItems: insertIf((ctx) => requireFeature(ctx, "recurring_invoices")),
   expenses: readWrite,
   expenseCategories: readWrite,
   usageCounters: readOnly,
@@ -73,14 +91,14 @@ const rules: Rules<RuleCtx, DataModel> = {
 const rlsConfig = { defaultPolicy: "deny" } as const;
 
 function scopedReader(ctx: QueryCtx, scope: Scope): DatabaseReader {
-  return wrapDatabaseReader({ scope }, ctx.db, rules, rlsConfig);
+  return wrapDatabaseReader({ scope, db: ctx.db }, ctx.db, rules, rlsConfig);
 }
 
 function scopedWriter(ctx: MutationCtx, scope: Scope): DatabaseWriter {
   // Row-level security on the outside, so triggers only fire for writes that
   // were permitted. Triggers themselves use the unwrapped db.
   const withTriggers = writerWithTriggers({ db: ctx.db, scope }, ctx.db, triggers);
-  return wrapDatabaseWriter({ scope }, withTriggers, rules, rlsConfig);
+  return wrapDatabaseWriter({ scope, db: ctx.db }, withTriggers, rules, rlsConfig);
 }
 
 function requireOrg(scope: Scope): void {
