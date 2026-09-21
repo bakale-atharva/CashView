@@ -46,7 +46,7 @@ const vInvoiceInput = {
   lineItems: v.array(vLineItemInput),
 };
 
-async function loadSettings(ctx: Ctx) {
+export async function loadSettings(ctx: Ctx) {
   // The first invoice of a scope that never got its defaults creates them.
   await ensureScopeDefaults(ctx, {
     scopeId: ctx.scope.scopeId,
@@ -109,7 +109,7 @@ async function prepare(
  * bumped in this transaction, so two invoices can never take the same one. It
  * skips a number that is already in use (a changed prefix can collide).
  */
-async function allocateNumber(
+export async function allocateNumber(
   ctx: Ctx,
   settings: { _id: Id<"scopeSettings">; nextInvoiceSeq: number; invoiceNumberPrefix: string },
 ): Promise<string> {
@@ -130,7 +130,7 @@ async function allocateNumber(
   throw conflict("invoice_number_unavailable");
 }
 
-async function writeLines(ctx: Ctx, invoiceId: Id<"invoices">, lines: ComputedLine[]) {
+export async function writeLines(ctx: Ctx, invoiceId: Id<"invoices">, lines: ComputedLine[]) {
   for (const line of lines) {
     await ctx.db.insert("invoiceLineItems", {
       scopeId: ctx.scope.scopeId,
