@@ -21,6 +21,9 @@ const eslintConfig = defineConfig([
     ".claude/**",
     "convex/_generated/**",
     ".impeccable/**",
+    // Bklit UI ships chart source directly into the project via the shadcn
+    // CLI (see PLAN.md A5); it isn't code we wrote or maintain the style of.
+    "components/charts/**",
   ]),
 ]);
 

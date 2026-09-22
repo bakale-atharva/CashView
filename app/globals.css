@@ -86,6 +86,48 @@
   --text-5xl--line-height: 1.15;
 
   --duration-250: 250ms;
+
+  --color-chart-scale-pattern-color: var(----chart-scale-pattern-color);
+
+  --color-chart-scale-05: var(----chart-scale-05);
+
+  --color-chart-scale-04: var(----chart-scale-04);
+
+  --color-chart-scale-03: var(----chart-scale-03);
+
+  --color-chart-scale-02: var(----chart-scale-02);
+
+  --color-chart-scale-01: var(----chart-scale-01);
+
+  --color-chart-label: var(----chart-label);
+
+  --color-chart-marker-foreground: var(----chart-marker-foreground);
+
+  --color-chart-marker-border: var(----chart-marker-border);
+
+  --color-chart-marker-background: var(----chart-marker-background);
+
+  --color-chart-tooltip-muted: var(----chart-tooltip-muted);
+
+  --color-chart-tooltip-foreground: var(----chart-tooltip-foreground);
+
+  --color-chart-tooltip-background: var(----chart-tooltip-background);
+
+  --chart-brush-border: var(----chart-brush-border);
+
+  --color-chart-grid: var(----chart-grid);
+
+  --color-chart-crosshair: var(----chart-crosshair);
+
+  --chart-line-secondary: var(----chart-line-secondary);
+
+  --chart-line-primary: var(----chart-line-primary);
+
+  --color-chart-foreground-muted: var(----chart-foreground-muted);
+
+  --color-chart-foreground: var(----chart-foreground);
+
+  --color-chart-background: var(----chart-background);
 }
 
 :root {
@@ -137,6 +179,29 @@
   --stamp-overdue-foreground: #ffffff;
   --stamp-void: #6b6656;
   --stamp-void-foreground: #ffffff;
+  /* Retheme Bklit's defaults to the Certified Ledger palette (never its own
+     blue/gray defaults — see PLAN.md A5 and .claude/skills/bklit-ui/rules/theming.md). */
+  --chart-background: var(--card);
+  --chart-foreground: var(--foreground);
+  --chart-foreground-muted: var(--muted-foreground);
+  --chart-line-primary: var(--chart-1);
+  --chart-line-secondary: var(--chart-2);
+  --chart-crosshair: var(--primary);
+  --chart-grid: var(--border);
+  --chart-brush-border: var(--chart-grid);
+  --chart-tooltip-background: var(--popover);
+  --chart-tooltip-foreground: var(--popover-foreground);
+  --chart-tooltip-muted: var(--muted-foreground);
+  --chart-marker-background: var(--card);
+  --chart-marker-border: var(--border);
+  --chart-marker-foreground: var(--foreground);
+  --chart-label: var(--muted-foreground);
+  --chart-scale-01: #f1efe6;
+  --chart-scale-02: #ddd8c5;
+  --chart-scale-03: #b3a980;
+  --chart-scale-04: #8a7a4a;
+  --chart-scale-05: #6b6656;
+  --chart-scale-pattern-color: var(--muted);
 }
 
 .dark {
@@ -184,6 +249,22 @@
   --stamp-overdue-foreground: #14180f;
   --stamp-void: #a8a290;
   --stamp-void-foreground: #14180f;
+  --chart-background: var(--card);
+  --chart-foreground: var(--foreground);
+  --chart-foreground-muted: var(--muted-foreground);
+  --chart-crosshair: var(--primary);
+  --chart-grid: var(--border);
+  --chart-brush-border: var(--chart-grid);
+  --chart-marker-background: var(--card);
+  --chart-marker-border: var(--border);
+  --chart-marker-foreground: var(--foreground);
+  --chart-label: var(--muted-foreground);
+  --chart-scale-01: #2c3324;
+  --chart-scale-02: #3d452f;
+  --chart-scale-03: #5c6540;
+  --chart-scale-04: #8a8a52;
+  --chart-scale-05: #a8a290;
+  --chart-scale-pattern-color: var(--muted);
 }
 
 @layer base {
