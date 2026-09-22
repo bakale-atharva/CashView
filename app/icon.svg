@@ -1,0 +1,15 @@
+<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .mark { fill: #ab3327; }
+    @media (prefers-color-scheme: dark) {
+      .mark { fill: #d9584a; }
+    }
+  </style>
+  <g class="mark" transform="rotate(-8 16 16)">
+    <path
+      fill-rule="evenodd"
+      clip-rule="evenodd"
+      d="M25.19 23.72 A12 12 0 1 1 25.19 8.28 L20.60 12.14 A6 6 0 1 0 20.60 19.86 Z"
+    />
+  </g>
+</svg>

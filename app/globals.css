@@ -4,11 +4,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+  Direction: "Certified Ledger" — see .impeccable/surfaces/app.md for the full
+  contract. Status is a stamped ink mark, not a colored pill; the sidebar is
+  the ledger's bound cover; numerals are always tabular. Do not add a second
+  type family — Public Sans carries headings, body, buttons, and data.
+*/
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-public-sans);
+  --font-mono: var(--font-public-sans);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -46,75 +52,138 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Stamp/status ink — one committed color per state, never blended (F0 direction contract) */
+  --color-stamp-draft: var(--stamp-draft);
+  --color-stamp-draft-foreground: var(--stamp-draft-foreground);
+  --color-stamp-sent: var(--stamp-sent);
+  --color-stamp-sent-foreground: var(--stamp-sent-foreground);
+  --color-stamp-paid: var(--stamp-paid);
+  --color-stamp-paid-foreground: var(--stamp-paid-foreground);
+  --color-stamp-overdue: var(--stamp-overdue);
+  --color-stamp-overdue-foreground: var(--stamp-overdue-foreground);
+  --color-stamp-void: var(--stamp-void);
+  --color-stamp-void-foreground: var(--stamp-void-foreground);
+
+  /* Fixed rem scale, ~1.125 ratio (Operate mode — see reference/operate.md) */
+  --text-xs: 0.79rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.889rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.6;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.266rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.424rem;
+  --text-2xl--line-height: 1.3;
+  --text-3xl: 1.602rem;
+  --text-3xl--line-height: 1.25;
+  --text-4xl: 1.802rem;
+  --text-4xl--line-height: 1.2;
+  --text-5xl: 2.027rem;
+  --text-5xl--line-height: 1.15;
+
+  --duration-250: 250ms;
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Pale ruled-ledger paper, fountain-ink text */
+  --background: #faf9f6;
+  --foreground: #1c1b18;
+  --card: #ffffff;
+  --card-foreground: #1c1b18;
+  --popover: #ffffff;
+  --popover-foreground: #1c1b18;
+  /* Stamp-red — the single committed UI accent (primary actions) */
+  --primary: #ab3327;
+  --primary-foreground: #faf9f6;
+  --secondary: #eeece2;
+  --secondary-foreground: #1c1b18;
+  --muted: #f1efe6;
+  --muted-foreground: #6b6656;
+  --accent: #eeece2;
+  --accent-foreground: #1c1b18;
+  --destructive: #ab3327;
+  --border: #e2dfd2;
+  --input: #e2dfd2;
+  --ring: #ab3327;
+  --chart-1: #ab3327;
+  --chart-2: #3d6b4f;
+  --chart-3: #2a4b7c;
+  --chart-4: #b8863b;
+  --chart-5: #6b6656;
+  --radius: 0.5rem;
+
+  /* Sidebar — the second neutral layer, a bound ledger cover */
+  --sidebar: #1f2b24;
+  --sidebar-foreground: #ebeee5;
+  --sidebar-primary: #ab3327;
+  --sidebar-primary-foreground: #faf9f6;
+  --sidebar-accent: #2a3830;
+  --sidebar-accent-foreground: #ebeee5;
+  --sidebar-border: #17201a;
+  --sidebar-ring: #c96257;
+
+  /* Status stamps — one exact ink color per state, never blended */
+  --stamp-draft: #8a6a1f;
+  --stamp-draft-foreground: #ffffff;
+  --stamp-sent: #2a4b7c;
+  --stamp-sent-foreground: #ffffff;
+  --stamp-paid: #3d6b4f;
+  --stamp-paid-foreground: #ffffff;
+  --stamp-overdue: #ab3327;
+  --stamp-overdue-foreground: #ffffff;
+  --stamp-void: #6b6656;
+  --stamp-void-foreground: #ffffff;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Same ledger, read by lamplight */
+  --background: #14180f;
+  --foreground: #ece9de;
+  --card: #1b2016;
+  --card-foreground: #ece9de;
+  --popover: #1b2016;
+  --popover-foreground: #ece9de;
+  --primary: #d9584a;
+  --primary-foreground: #14180f;
+  --secondary: #232a1d;
+  --secondary-foreground: #ece9de;
+  --muted: #232a1d;
+  --muted-foreground: #a8a290;
+  --accent: #232a1d;
+  --accent-foreground: #ece9de;
+  --destructive: #d9584a;
+  --border: #2c3324;
+  --input: #2c3324;
+  --ring: #d9584a;
+  --chart-1: #d9584a;
+  --chart-2: #6ba382;
+  --chart-3: #6f97c9;
+  --chart-4: #d1a860;
+  --chart-5: #a8a290;
+
+  --sidebar: #101710;
+  --sidebar-foreground: #ebeee5;
+  --sidebar-primary: #d9584a;
+  --sidebar-primary-foreground: #14180f;
+  --sidebar-accent: #1c2618;
+  --sidebar-accent-foreground: #ebeee5;
+  --sidebar-border: #0b0f0a;
+  --sidebar-ring: #d9584a;
+
+  --stamp-draft: #c9a24a;
+  --stamp-draft-foreground: #14180f;
+  --stamp-sent: #6f97c9;
+  --stamp-sent-foreground: #14180f;
+  --stamp-paid: #6ba382;
+  --stamp-paid-foreground: #14180f;
+  --stamp-overdue: #d9584a;
+  --stamp-overdue-foreground: #14180f;
+  --stamp-void: #a8a290;
+  --stamp-void-foreground: #14180f;
 }
 
 @layer base {
@@ -126,5 +195,20 @@
   }
   html {
     @apply font-sans;
+  }
+
+  /* Every number on the ledger reads in fixed-width columns. */
+  table,
+  .tabular-figures {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  :focus-visible {
+    outline-color: var(--ring);
   }
 }
