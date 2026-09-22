@@ -302,7 +302,7 @@ Also: create `scopeSettings` and seed the expense categories on first `organizat
 
 **Branch:** `docs/b3-clerk-config` (adds `docs/clerk-setup.md` only)
 
-> **Status: SKIPPED for now (2026-09-21).** B3 is manual dashboard work plus read-back verification, so by decision it is set aside and the build moves straight on to B4. No `docs/clerk-setup.md` has been written and no B3 verification has been run. Everything below remains the intended configuration and is still the source of truth for it; the owner is completing parts by hand as time allows. Until it is done, nothing has been verified against real Clerk delivery: the webhook endpoint and its signing secret do not exist yet, so `subscriptions` stays empty and every scope resolves to Free.
+> **Status: mostly done (2026-09-22).** Was skipped on 2026-09-21 so B4 onward could proceed against a stubbed config; resumed once B4–B9 were merged. `docs/clerk-setup.md` documents what's configured, a real bug found and fixed (`free_org`/`business_org` had the wrong Features attached), and reads every value back through the Backend API where the API exposes it. Three items turned out to be genuinely Dashboard-only on this account — not yet automatable, confirmed by real `404`s from Clerk's own API edge, not a guess: creating the `org:accountant` / `org:viewer` roles, setting the three org plans' seat caps, and confirming one live webhook delivery. See the checklist in `docs/clerk-setup.md`.
 
 You do every click here yourself; I supply exact values and verify the result afterwards through the Clerk Backend API. **Every description below is final copy — paste it verbatim.** All are under 500 characters, which is our house limit for readability; Clerk does not publish a limit for these fields, so if one truncates, tell me and I will trim.
 
@@ -1021,7 +1021,7 @@ Each row is one PR against `master`. Nothing starts until the previous one is me
 | F8 | `chore/f8-finish` | Finish review, a11y, DESIGN.md |
 | S | `feat/s-seed-data` | Seed script + run |
 
-**Phase B3 is a hard gate** *(waived for the code phases: B3 was skipped on 2026-09-21 and B4 proceeds; the gate still applies to any live, end-to-end verification)*. B4 onward depends on plans, features, and roles existing in Clerk. If the dashboard work stalls, backend phases B5–B9 can still proceed against a temporarily stubbed `getEntitlements`, but nothing merges to `master` until the real config is in place.
+**Phase B3 is a hard gate** *(waived for the code phases while B3 was skipped: B4 proceeded against a stubbed config; as of 2026-09-22, B3 is mostly done — see its status note above — with three Dashboard-only items still open before live, end-to-end verification can run)*. B4 onward depends on plans, features, and roles existing in Clerk. If the dashboard work stalls, backend phases B5–B9 can still proceed against a temporarily stubbed `getEntitlements`, but nothing merges to `master` until the real config is in place.
 
 ---
 
