@@ -27,6 +27,7 @@ Work proceeds **backend first, then frontend**, one phase per branch, each endin
 | Authz model | **Decoupled.** Roles come from the JWT; entitlements come from a webhook-synced Convex table. |
 | Billing shape | **Two parallel plan families.** Three organization plans *and* three user plans, because personal scope is a first-class workspace that must be upgradable on its own. |
 | Backend library | **`convex-helpers`** for custom function wrappers, row-level security, and triggers — see A4. |
+| Frontend motion, charts, components | **Motion** (`motion.dev`, the current name for Framer Motion) for every animation; **Bklit UI** (`ui.bklit.com`) for chart primitives; **Kokonut UI** (`kokonutui.com`) for interactive component patterns to adapt. All three sit *under* shadcn/ui, not beside it, and none ship in their own default look — see A5. |
 | Git workflow | One branch per phase → PR → you review → you merge. Never merge unreviewed. |
 
 ### Seed targets
@@ -103,6 +104,15 @@ Every handler then receives `ctx.scope` already resolved and type-safe. This is 
 Also used where they fit: `convex-helpers/validators` (`literals`, `nullable`, `brandedString`) to tighten the schema, and `convex-helpers/server/pagination` where a plain paginated query is enough.
 
 **Not used, and why:** the `sessions`, `hono`, `cors`, `retries`, `rateLimit`, and `migrations` modules are out of scope — Clerk owns sessions, we have no Hono router, the only cross-origin surface is the public invoice link, and the retry/rate-limit/migration concerns have since moved to dedicated `@convex-dev/*` components that we would reach for instead if they became necessary. `crud` is deliberately avoided: it generates unscoped CRUD endpoints, which is precisely the shape this application must not have.
+
+### A5. Three frontend libraries sit underneath shadcn, not beside it
+
+F0 locked a specific, bespoke visual world — **Certified Ledger**: rubber-stamp status marks, ruled paper, one stamp-red accent, a five-color status vocabulary, Public Sans throughout (`.impeccable/surfaces/app.md`, `DESIGN.md`). None of the three libraries below may be dropped in with their own default theme; each earns its place only where it saves real engineering work (motion primitives, chart math, interaction patterns), and every visible surface it produces gets re-skinned to the tokens in `app/globals.css` before it ships.
+
+- **Motion** (`motion.dev`, package `motion` — the current name for what shipped as Framer Motion) is the animation primitive for the whole app: the sidebar reveal, hover/focus/active transitions, and — the signature interaction the direction contract calls for — the **stamp-strike**, a short, orchestrated animation (scale + slight rotation + an ink-impact flash) that plays when an invoice flips to Sent, Paid, or Void, dramatizing the direction's own metaphor rather than decorating it. Governed by Operate mode's 150–250ms budget (`reference/operate.md`); one authored moment per state change, never scattered hover effects.
+- **Bklit UI** (`ui.bklit.com`) supplies composable chart primitives — root chart, `Grid`, series, axes, `ChartTooltip` — as shadcn registry components (add the `@bklit` namespace to `components.json`, then `npx shadcn@latest add @bklit/<chart>` per chart; each chart pulls its own Visx + `motion` peers, so it is the same Motion dependency as A5's first bullet, not a second animation library). It replaces hand-rolling chart math for F2 (dashboard) and F6 (reports). Theming goes through Bklit's own `chartCssVars` export and the `--chart-1` … `--chart-5` tokens already defined in `app/globals.css` (never a raw `var(--chart-…)` string or a hardcoded hex) — mapped to the app's status colors where a chart is status-shaped, and to `--chart-1..5` otherwise; tooltip surfaces use `bg-popover text-popover-foreground`, not Bklit's own defaults. Axis/label type is Public Sans. The `dataviz` skill still governs composition, density, and layout regardless of which primitives assemble the chart.
+- **Kokonut UI** (`kokonutui.com`) is a reference source for interaction *patterns* — command palettes, animated cards, richly-stated empty/loading treatments — installed piecemeal via the shadcn CLI and treated as a structural starting point, never a finished component. **Its own default look is a dark, near-black zinc canvas with Geist typography** — the opposite of this app's pale-ledger, Public Sans world — so every component pulled from it is re-colored, re-typeset, and re-radiused to the design system before it's considered done; a Kokonut component still wearing its own theme in a PR is a review-blocking defect, not a style nit.
+- **shadcn/ui** (already in place, on Base UI) remains the base component layer everything above composes with, per the existing setup.
 
 ---
 
@@ -930,23 +940,25 @@ Deliverable is `PRODUCT.md`, the surface brief with its six contract blocks, the
 
 **Branch:** `feat/f1-app-shell`
 
-Sidebar + top bar, `<OrganizationSwitcher>` with `hidePersonal={false}` so Personal Account is reachable, a persistent scope indicator so it is never ambiguous which books you are looking at, command palette, and the full loading/empty/error vocabulary the rest of the app reuses. Role-aware nav: viewers do not see create affordances at all.
+Install `motion` and register the `@bklit` namespace in `components.json` (see A5) before writing UI; individual Bklit charts are added later, per chart, as F2/F6 need them (`npx shadcn@latest add @bklit/<chart>`). Kokonut UI components are pulled in ad hoc, per surface, as a starting point rather than bulk-installed. Sidebar + top bar, `<OrganizationSwitcher>` with `hidePersonal={false}` so Personal Account is reachable, a persistent scope indicator so it is never ambiguous which books you are looking at, command palette (a Kokonut UI command-palette pattern is a reasonable starting point, restyled per A5), and the full loading/empty/error vocabulary the rest of the app reuses. Role-aware nav: viewers do not see create affordances at all. The sidebar's reveal/collapse and route transitions are Motion's first job in the app — one authored moment, not per-element hover effects.
 
 ## Phase F2 — Dashboard
 
 **Branch:** `feat/f2-dashboard`
 
-Revenue overview, outstanding vs collected, cash flow, expense breakdown, recent activity. Charts follow the `dataviz` skill. Empty states teach the product rather than saying "no data".
+Revenue overview, outstanding vs collected, cash flow, expense breakdown, recent activity. Charts are built from Bklit UI's composable primitives (axes, tooltips, legends, brush) rather than hand-rolled, restyled to the app's own status/chart palette per A5; composition, density, and layout still follow the `dataviz` skill regardless of which primitives assemble the chart. Empty states teach the product rather than saying "no data".
 
 ## Phase F3 — Clients · Phase F4 — Invoices · Phase F5 — Expenses
 
 **Branches:** `feat/f3-clients`, `feat/f4-invoices`, `feat/f5-expenses`
 
-F4 is the big one: list with filters, the line-item editor with live server-verified totals, template picker with branding, PDF download via the `@react-pdf/renderer` route handler, the public invoice page at `/i/:token` (unauthenticated, its own minimal layout), and recurring-invoice management behind an upgrade gate. F5 carries receipt upload with a drag-drop dropzone and the OCR confirm-or-edit flow.
+F4 is the big one: list with filters, the line-item editor with live server-verified totals, template picker with branding, PDF download via the `@react-pdf/renderer` route handler, the public invoice page at `/i/:token` (unauthenticated, its own minimal layout), and recurring-invoice management behind an upgrade gate. This is also where the **stamp-strike** signature interaction (A5) ships: marking an invoice Sent, Paid, or Void plays a short Motion-driven animation of the status stamp striking the page, rather than a status field silently changing value. F5 carries receipt upload with a drag-drop dropzone and the OCR confirm-or-edit flow.
 
 ## Phase F6 — Reports · Phase F7 — Billing, settings, team
 
 **Branches:** `feat/f6-reports`, `feat/f7-billing-settings`
+
+F6's report charts reuse the same Bklit UI primitives and palette mapping established in F2 rather than introducing a second charting approach.
 
 F7 renders **whichever plan family matches the active scope**: `<PricingTable for="organization" />` when an organization is active, `<PricingTable for="user" />` in personal scope (note it is a single `for` string prop — there is no `forOrganizations` boolean, and passing `for="organization"` with no active organization throws). Also the in-app checkout drawer, `<OrganizationProfile />` for team management and invitations, a seat meter showing members against the plan's cap, usage meters fed by `getUsageSummary`, company branding settings, and the audit-trail viewer for Owners.
 
@@ -1011,12 +1023,12 @@ Each row is one PR against `master`. Nothing starts until the previous one is me
 | B8 | `feat/b8-reports` | Report aggregations |
 | B9 | `feat/b9-recurring-and-ai` | Recurring cron + OpenRouter OCR |
 | F0 | `design/f0-direction` | PRODUCT.md, direction contract, tokens, app icon + favicon |
-| F1 | `feat/f1-app-shell` | Shell, org switcher, nav |
-| F2 | `feat/f2-dashboard` | Dashboard + charts |
+| F1 | `feat/f1-app-shell` | Shell, org switcher, nav, Motion + Bklit installed, Motion-driven shell transitions |
+| F2 | `feat/f2-dashboard` | Dashboard + Bklit charts |
 | F3 | `feat/f3-clients` | Clients UI |
-| F4 | `feat/f4-invoices` | Invoices UI, PDF, public page |
+| F4 | `feat/f4-invoices` | Invoices UI, PDF, public page, Motion stamp-strike interaction |
 | F5 | `feat/f5-expenses` | Expenses UI, upload, OCR flow |
-| F6 | `feat/f6-reports` | Reports UI |
+| F6 | `feat/f6-reports` | Reports UI (Bklit charts) |
 | F7 | `feat/f7-billing-settings` | Pricing, checkout, team, settings, audit |
 | F8 | `chore/f8-finish` | Finish review, a11y, DESIGN.md |
 | S | `feat/s-seed-data` | Seed script + run |
@@ -1031,5 +1043,6 @@ Each row is one PR against `master`. Nothing starts until the previous one is me
 - **Dev-instance plans do not migrate to production.** Everything in B3 is re-done by hand against the production instance later. Budget for it; it is not a script.
 - **The identity claim shape is unverified until B1.0 runs.** If Convex flattens `o` differently than expected, `requireScope()` changes shape — cheap at B1, expensive later. That is exactly why the probe is the first task rather than an assumption.
 - **Custom organization roles are free in development but require Clerk's paid B2B Authentication add-on in production.** The whole four-role model — `org:owner`, `org:accountant`, `org:viewer` — costs nothing on this Development instance and becomes a paid line item the day you promote. The same add-on gates seat caps above 20. It changes nothing we build, since Convex derives capability from the role slug and would map a reduced role set just as happily, but it is a real cost attached to a design decision and better known now than at launch.
+- **Kokonut UI's default look is the opposite of this app's direction.** It ships dark zinc, Geist type, and its own motion timing; every component pulled from it (F1 onward) needs re-coloring, re-typesetting, and re-timing to the Certified Ledger tokens before it ships, per A5. Treat it as a pattern source, not a drop-in kit — budget real time for the re-skin, not just the install.
 - **`convex-helpers` is pre-1.0 (v0.1.124).** Its API has been stable in practice but the version number is honest about the guarantee. It is pinned exactly in Phase 0, and the surface we depend on is small and concentrated in `convex/lib/` — if a breaking change ever lands, three files absorb it rather than the whole backend.
 - **OpenRouter free models are rate-limited and occasionally withdrawn.** The three-model fallback chain and a clean "scan failed, enter it manually" path are part of B9, not an afterthought.
