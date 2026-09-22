@@ -38,6 +38,7 @@ import type * as lib_scopeDefaults from "../lib/scopeDefaults.js";
 import type * as lib_tables from "../lib/tables.js";
 import type * as lib_triggers from "../lib/triggers.js";
 import type * as lib_validators from "../lib/validators.js";
+import type * as me from "../me.js";
 import type * as public_ from "../public.js";
 import type * as receiptScan from "../receiptScan.js";
 import type * as recurring from "../recurring.js";
@@ -83,6 +84,7 @@ declare const fullApi: ApiFromModules<{
   "lib/tables": typeof lib_tables;
   "lib/triggers": typeof lib_triggers;
   "lib/validators": typeof lib_validators;
+  me: typeof me;
   public: typeof public_;
   receiptScan: typeof receiptScan;
   recurring: typeof recurring;

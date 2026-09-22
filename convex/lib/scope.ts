@@ -122,6 +122,11 @@ export function hasCapability(scope: Scope, capability: Capability): boolean {
   return CAPABILITIES[scope.role].has(capability);
 }
 
+/** All capabilities a role holds — for exposing role-aware nav/UI to the client. */
+export function capabilitiesForRole(role: Role): Capability[] {
+  return [...CAPABILITIES[role]];
+}
+
 export function requireCapability(scope: Scope, capability: Capability): void {
   if (!hasCapability(scope, capability)) {
     throw new ConvexError({ code: "FORBIDDEN", capability });

@@ -1,0 +1,93 @@
+"use client";
+
+import { useQuery } from "convex/react";
+import { useRouter } from "next/navigation";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { api } from "@/convex/_generated/api";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { primaryNavItems, workspaceNavItems } from "./nav-items";
+
+type CommandPaletteContextValue = {
+  open: () => void;
+};
+
+const CommandPaletteContext = createContext<CommandPaletteContextValue | null>(null);
+
+export function useCommandPalette(): CommandPaletteContextValue {
+  const ctx = useContext(CommandPaletteContext);
+  if (!ctx) {
+    throw new Error("useCommandPalette must be used within CommandPaletteProvider");
+  }
+  return ctx;
+}
+
+export function CommandPaletteProvider({ children }: { children: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
+  const me = useQuery(api.me.getCurrentScope, {});
+
+  const open = useCallback(() => setIsOpen(true), []);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        setIsOpen((prev) => !prev);
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const navItems = useMemo(() => {
+    const capabilities = me?.capabilities;
+    if (!capabilities) return [];
+    return [...primaryNavItems, ...workspaceNavItems].filter(
+      (item) => !item.requires || capabilities.includes(item.requires),
+    );
+  }, [me]);
+
+  const runNavigate = useCallback(
+    (href: string) => {
+      setIsOpen(false);
+      router.push(href);
+    },
+    [router],
+  );
+
+  const value = useMemo(() => ({ open }), [open]);
+
+  return (
+    <CommandPaletteContext.Provider value={value}>
+      {children}
+      <CommandDialog open={isOpen} onOpenChange={setIsOpen}>
+        <CommandInput placeholder="Jump to…" />
+        <CommandList>
+          <CommandEmpty>No matches.</CommandEmpty>
+          <CommandGroup heading="Navigate">
+            {navItems.map((item) => (
+              <CommandItem key={item.href} onSelect={() => runNavigate(item.href)}>
+                <item.icon />
+                <span>{item.title}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
+    </CommandPaletteContext.Provider>
+  );
+}

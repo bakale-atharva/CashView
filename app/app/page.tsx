@@ -1,14 +1,24 @@
 import { auth } from "@clerk/nextjs/server";
+import { LogoMark } from "@/components/brand/logo";
 
-// Placeholder so the /app gate can be exercised; replaced by the shell in F1.
+// The real dashboard (revenue, outstanding vs collected, cash flow, expense
+// breakdown, recent activity) is Phase F2. This confirms the shell, the
+// scope switch, and role-aware nav are wired end to end.
 export default async function AppHome() {
-  // Redirects to the sign-in route when signed out. Check per page, not in a
-  // layout: layouts don't re-render on client navigation between pages.
   await auth.protect();
 
   return (
-    <main className="flex flex-1 items-center justify-center">
-      <p className="text-muted-foreground">Signed in.</p>
-    </main>
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
+      <LogoMark className="size-10 text-muted-foreground/40" />
+      <div className="space-y-1">
+        <h1 className="text-xl font-semibold tracking-tight">
+          The books are open
+        </h1>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          The dashboard — revenue, outstanding vs. collected, cash flow —
+          lands in the next phase.
+        </p>
+      </div>
+    </div>
   );
 }
