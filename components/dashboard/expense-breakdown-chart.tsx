@@ -14,6 +14,10 @@ const PALETTE = [
   "var(--chart-4)",
   "var(--chart-5)",
 ];
+const OTHER_COLOR = "var(--muted-foreground)";
+// One color per visible slice, never recycled: a repeated color across
+// unrelated categories reads as one category split in two.
+const MAX_SLICES = PALETTE.length;
 
 export function ExpenseBreakdownChart({ from, to }: { from: number; to: number }) {
   const hasReports = useFeature("reports");
@@ -35,30 +39,33 @@ export function ExpenseBreakdownChart({ from, to }: { from: number; to: number }
     );
   }
 
-  const slices = breakdown.categories.map((c, i) => ({
-    label: c.name,
-    value: c.totalCents,
-    color: PALETTE[i % PALETTE.length],
-  }));
+  const top = breakdown.categories.slice(0, MAX_SLICES);
+  const rest = breakdown.categories.slice(MAX_SLICES);
+  const otherCents = rest.reduce((s, c) => s + c.totalCents, 0);
+
+  const rows = [
+    ...top.map((c, i) => ({ key: c.categoryId, name: c.name, cents: c.totalCents, color: PALETTE[i] })),
+    ...(rest.length > 0
+      ? [{ key: "other", name: `Other (${rest.length})`, cents: otherCents, color: OTHER_COLOR }]
+      : []),
+  ];
 
   return (
-    <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-      <PieChart data={slices} size={180} innerRadius={55} padAngle={0.02} cornerRadius={3}>
-        <></>
-      </PieChart>
-      <ul className="w-full space-y-1.5 text-sm">
-        {breakdown.categories.map((c, i) => (
-          <li key={c.categoryId} className="flex items-center justify-between gap-3">
-            <span className="flex items-center gap-2 truncate">
-              <span
-                className="size-2.5 shrink-0 rounded-full"
-                style={{ background: PALETTE[i % PALETTE.length] }}
-                aria-hidden
-              />
-              <span className="truncate text-foreground/80">{c.name}</span>
+    <div className="flex items-start gap-4">
+      <div className="shrink-0">
+        <PieChart data={rows.map((r) => ({ label: r.name, value: r.cents, color: r.color }))} size={140} innerRadius={42} padAngle={0.02} cornerRadius={3}>
+          <></>
+        </PieChart>
+      </div>
+      <ul className="min-w-0 flex-1 space-y-1.5 text-sm">
+        {rows.map((r) => (
+          <li key={r.key} className="flex items-center justify-between gap-3">
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="size-2.5 shrink-0 rounded-full" style={{ background: r.color }} aria-hidden />
+              <span className="truncate text-foreground/80">{r.name}</span>
             </span>
             <span className="shrink-0 font-mono tabular-nums text-muted-foreground">
-              {formatCents(c.totalCents, breakdown.currency)}
+              {formatCents(r.cents, breakdown.currency)}
             </span>
           </li>
         ))}
