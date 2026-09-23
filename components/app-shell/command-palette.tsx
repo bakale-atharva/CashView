@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import {
   createContext,
@@ -38,7 +38,8 @@ export function useCommandPalette(): CommandPaletteContextValue {
 export function CommandPaletteProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
-  const me = useQuery(api.me.getCurrentScope, {});
+  const { isAuthenticated } = useConvexAuth();
+  const me = useQuery(api.me.getCurrentScope, isAuthenticated ? {} : "skip");
 
   const open = useCallback(() => setIsOpen(true), []);
 

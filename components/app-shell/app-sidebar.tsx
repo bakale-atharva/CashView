@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { api } from "@/convex/_generated/api";
@@ -48,7 +48,8 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const me = useQuery(api.me.getCurrentScope, {});
+  const { isAuthenticated } = useConvexAuth();
+  const me = useQuery(api.me.getCurrentScope, isAuthenticated ? {} : "skip");
   const loading = me === undefined;
 
   const primary = visibleItems(primaryNavItems, me?.capabilities);
