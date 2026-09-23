@@ -5,6 +5,7 @@ import type { MutationCtx } from "./_generated/server";
 import { computeTotals, formatInvoiceNumber, startOfUtcDay } from "./lib/invoiceMath";
 import { getEntitlements, getUsage, hasFeature } from "./lib/entitlements";
 import { internalScopedMutation } from "./lib/functions";
+import { mintPublicToken } from "./lib/publicToken";
 import type { Doc, Id, TableNames } from "./_generated/dataModel";
 import { vPlanKey } from "./lib/validators";
 import type { PlanKey } from "./lib/validators";
@@ -324,7 +325,7 @@ export const seedScope = internalScopedMutation({
         discountCents: totals.discountCents,
         totalCents: totals.totalCents,
         paidCents: 0,
-        publicToken: status === "draft" ? undefined : crypto.randomUUID().replace(/-/g, ""),
+        publicToken: status === "draft" ? undefined : mintPublicToken(),
         sentAt,
         viewedAt,
         paidAt,
