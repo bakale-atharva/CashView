@@ -102,6 +102,32 @@ export const list = scopedQuery({
   },
 });
 
+/**
+ * Live totals across every active client, for the dashboard. Deliberately
+ * NOT gated on the `reports` feature: the plan is explicit that caps stop
+ * you adding more but never lock you out of seeing what you already have,
+ * and "what am I owed right now" is exactly that — unlike the trend/history
+ * views in reports.ts, which are the Pro-and-above feature.
+ */
+export const outstandingSummary = scopedQuery({
+  args: {},
+  handler: async (ctx) => {
+    requireCapability(ctx.scope, "clients.read");
+    const currency = await baseCurrency(ctx);
+    const clients = await ctx.db
+      .query("clients")
+      .withIndex("by_scopeId_and_isArchived", (q) =>
+        q.eq("scopeId", ctx.scope.scopeId).eq("isArchived", false),
+      )
+      .take(5000);
+    return {
+      currency,
+      outstandingCents: clients.reduce((s, c) => s + c.outstandingCents, 0),
+      clientCount: clients.length,
+    };
+  },
+});
+
 /** One client, including its trigger-maintained balances. */
 export const get = scopedQuery({
   args: { id: v.id("clients") },

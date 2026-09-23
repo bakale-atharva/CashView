@@ -2,8 +2,10 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useFeature } from "@/lib/use-entitlements";
 import { PieChart } from "@/components/charts/pie-chart";
 import { formatCents } from "@/lib/money";
+import { UpgradePrompt } from "./upgrade-prompt";
 
 const PALETTE = [
   "var(--chart-1)",
@@ -14,7 +16,12 @@ const PALETTE = [
 ];
 
 export function ExpenseBreakdownChart({ from, to }: { from: number; to: number }) {
-  const breakdown = useQuery(api.reports.expenseBreakdown, { from, to });
+  const hasReports = useFeature("reports");
+  const breakdown = useQuery(api.reports.expenseBreakdown, hasReports ? { from, to } : "skip");
+
+  if (hasReports === false) {
+    return <UpgradePrompt feature="Expense breakdown" />;
+  }
 
   if (breakdown === undefined) {
     return <div className="aspect-square w-full max-w-[220px] animate-pulse rounded-full bg-muted" />;

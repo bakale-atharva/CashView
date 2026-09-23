@@ -354,18 +354,29 @@ const ChartCore = memo(function ChartCore({
     [data, categoryAccessor]
   );
 
-  // Create a fake time scale for compatibility with ChartContext
+  // A stand-in time scale for ChartContext consumers written for time-series
+  // charts (axis, grid, tooltip). It must itself be callable: spreading the
+  // band scale into an object literal copies its methods but not its call
+  // signature, which surfaced as "xScale is not a function".
   const fakeTimeScale = useMemo(() => {
     const now = Date.now();
     const start = now - data.length * 24 * 60 * 60 * 1000;
-    const scale = {
-      ...categoryScale,
+    const span = Math.max(now - start, 1);
+    const toX = (value: Date | number) =>
+      ((+value - start) / span) * innerWidth;
+    return Object.assign(toX, {
       domain: () => [new Date(start), new Date(now)],
       range: () => [0, innerWidth] as [number, number],
-      invert: (x: number) => new Date(start + (x / innerWidth) * (now - start)),
-      copy: () => scale,
-    };
-    return scale;
+      invert: (x: number) =>
+        new Date(start + (x / Math.max(innerWidth, 1)) * span),
+      ticks: (count = 10) =>
+        Array.from(
+          { length: Math.max(count, 1) + 1 },
+          (_, i) => new Date(start + (span * i) / Math.max(count, 1))
+        ),
+      bandwidth: () => categoryScale.bandwidth(),
+      copy: () => toX,
+    });
   }, [categoryScale, innerWidth, data.length]);
 
   // Animation timing — replay when motion settings change

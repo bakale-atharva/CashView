@@ -1,6 +1,42 @@
 {
   "version": 1,
   "skills": {
+    "add-x-tweet": {
+      "source": "bklit/bklit-ui",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/add-x-tweet/SKILL.md",
+      "computedHash": "e7061614a4c2576f997a50f58a357532232ebd3eb4f09790d10785d4f260d9de"
+    },
+    "bklit-playground": {
+      "source": "bklit/bklit-ui",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/bklit-playground/SKILL.md",
+      "computedHash": "4f70173a8a636343c1995c2ff962479f333469379c58e9b21b06b926dd96b08c"
+    },
+    "bklit-ship": {
+      "source": "bklit/bklit-ui",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/bklit-ship/SKILL.md",
+      "computedHash": "28f076042705127103051d3636f3d785feb609b7e786b77184cf981002b973ad"
+    },
+    "bklit-studio": {
+      "source": "bklit/bklit-ui",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/bklit-studio/SKILL.md",
+      "computedHash": "8dcae8ee95929e4a321f903a77308fff4ecddeae6bb79daab8e0d062576f135d"
+    },
+    "bklit-studio-chart-performance": {
+      "source": "bklit/bklit-ui",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/bklit-studio-chart-performance/SKILL.md",
+      "computedHash": "73c58f0966c43a9d0f0cd738fcf16559a9948ea4b6628ab751ca19ac3390e517"
+    },
+    "bklit-ui": {
+      "source": "bklit/bklit-ui",
+      "sourceType": "github",
+      "skillPath": "skills/bklit-ui/SKILL.md",
+      "computedHash": "0c2c6c5cd9cfdfe74a087fcc43e6365fe7f9ca1c4c84c8067ab46317739a49b2"
+    },
     "clerk": {
       "source": "clerk/skills",
       "sourceType": "github",
@@ -264,6 +300,30 @@
       "sourceType": "github",
       "skillPath": ".agents/skills/impeccable/SKILL.md",
       "computedHash": "ec48c58ca973b42c826d5d3be9069b7023d2361ebf7f89ee56b0bae7eb92390a"
+    },
+    "pr-open": {
+      "source": "bklit/bklit-ui",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/pr-open/SKILL.md",
+      "computedHash": "00eb83d3cabeaeb4d8790ece1e08085d1aa87ed2d1a8b9015410a1cd1f39f1ba"
+    },
+    "turborepo": {
+      "source": "bklit/bklit-ui",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/turborepo/SKILL.md",
+      "computedHash": "07df548089e9754facc4b46926f7df821219348615c8e71f2b498e19ab327a77"
+    },
+    "unit-tests": {
+      "source": "bklit/bklit-ui",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/unit-tests/SKILL.md",
+      "computedHash": "c3264f29aece77739c829be4fc5abfd60bb94bca27a411a52738dea0dc23e11c"
+    },
+    "wiki-llms-txt": {
+      "source": "bklit/bklit-ui",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/wiki-llms-text/SKILL.md",
+      "computedHash": "310e1adaf7dd4bd3b7ec9a64215c042306a0d565341b6f13ec264faded94a9d4"
     }
   }
 }

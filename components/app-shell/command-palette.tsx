@@ -19,7 +19,8 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { primaryNavItems, workspaceNavItems } from "./nav-items";
+import { useEntitlements } from "@/lib/use-entitlements";
+import { primaryNavItems, visibleNavItems, workspaceNavItems } from "./nav-items";
 
 type CommandPaletteContextValue = {
   open: () => void;
@@ -54,13 +55,17 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const navItems = useMemo(() => {
-    const capabilities = me?.capabilities;
-    if (!capabilities) return [];
-    return [...primaryNavItems, ...workspaceNavItems].filter(
-      (item) => !item.requires || capabilities.includes(item.requires),
-    );
-  }, [me]);
+  const entitlements = useEntitlements();
+
+  const navItems = useMemo(
+    () =>
+      visibleNavItems(
+        [...primaryNavItems, ...workspaceNavItems],
+        me?.capabilities,
+        entitlements?.features,
+      ),
+    [me, entitlements],
+  );
 
   const runNavigate = useCallback(
     (href: string) => {

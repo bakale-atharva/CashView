@@ -18,17 +18,13 @@ import {
   SidebarMenuSkeleton,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { primaryNavItems, workspaceNavItems, type NavItem } from "./nav-items";
-
-function visibleItems(
-  items: NavItem[],
-  capabilities: string[] | undefined,
-): NavItem[] {
-  // While the query is loading, show nothing rather than everything: a role
-  // is either known or the item stays hidden — never briefly over-permissive.
-  if (capabilities === undefined) return [];
-  return items.filter((item) => !item.requires || capabilities.includes(item.requires));
-}
+import { useEntitlements } from "@/lib/use-entitlements";
+import {
+  primaryNavItems,
+  visibleNavItems,
+  workspaceNavItems,
+  type NavItem,
+} from "./nav-items";
 
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   const isActive = item.href === "/app" ? pathname === "/app" : pathname.startsWith(item.href);
@@ -50,10 +46,11 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { isAuthenticated } = useConvexAuth();
   const me = useQuery(api.me.getCurrentScope, isAuthenticated ? {} : "skip");
-  const loading = me === undefined;
+  const entitlements = useEntitlements();
+  const loading = me === undefined || entitlements === undefined;
 
-  const primary = visibleItems(primaryNavItems, me?.capabilities);
-  const workspace = visibleItems(workspaceNavItems, me?.capabilities);
+  const primary = visibleNavItems(primaryNavItems, me?.capabilities, entitlements?.features);
+  const workspace = visibleNavItems(workspaceNavItems, me?.capabilities, entitlements?.features);
 
   return (
     <Sidebar collapsible="icon">

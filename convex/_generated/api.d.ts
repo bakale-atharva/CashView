@@ -44,6 +44,7 @@ import type * as receiptScan from "../receiptScan.js";
 import type * as recurring from "../recurring.js";
 import type * as recurringCron from "../recurringCron.js";
 import type * as reports from "../reports.js";
+import type * as seed from "../seed.js";
 import type * as sync from "../sync.js";
 import type * as usage from "../usage.js";
 
@@ -90,6 +91,7 @@ declare const fullApi: ApiFromModules<{
   recurring: typeof recurring;
   recurringCron: typeof recurringCron;
   reports: typeof reports;
+  seed: typeof seed;
   sync: typeof sync;
   usage: typeof usage;
 }>;
