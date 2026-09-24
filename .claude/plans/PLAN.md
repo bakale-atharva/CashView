@@ -904,7 +904,7 @@ Gated on the `reports` feature. Revenue by month/quarter/year, outstanding vs co
 **Branch:** `feat/b9-recurring-and-ai`
 
 - **Recurring** — gated on `recurring_invoices`. Daily `crons.cron("0 2 * * *", ...)` → `internalMutation` scanning `by_active_and_next_run`, generating invoices as drafts, advancing `nextRunAt`. Quota still applies. Batched with `ctx.scheduler.runAfter` continuation rather than one unbounded pass.
-- **OCR** — gated on `receipt_scanning`. A `"use node"` action in its own file (the guidelines forbid mixing `"use node"` with queries/mutations) that pulls the receipt from storage, base64-encodes it, and calls OpenRouter with a JSON-schema-constrained prompt. Free vision models tried in order: `qwen/qwen2.5-vl-72b-instruct:free` → `meta-llama/llama-3.2-11b-vision-instruct:free` → `google/gemini-2.0-flash-exp:free`. Extracted vendor/date/total/tax/category are written back as a **suggestion the user confirms**, never silently applied. `OPENROUTER_API_KEY` goes in Convex env.
+- **OCR** — gated on `receipt_scanning`. A `"use node"` action in its own file (the guidelines forbid mixing `"use node"` with queries/mutations) that pulls the receipt from storage, base64-encodes it, and calls OpenRouter with a JSON-schema-constrained prompt. Free vision models tried in order: `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free` → `thinkingmachines/inkling:free` → `nex-agi/nex-n2.5-pro:free` → `qwen/qwen3.8-27b:free` → `google/gemma-4-31b-it:free`. Extracted vendor/date/total/tax/category are written back as a **suggestion the user confirms**, never silently applied. `OPENROUTER_API_KEY` goes in Convex env.
 
 ---
 

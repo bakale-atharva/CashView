@@ -231,9 +231,11 @@ describe("request building", () => {
 
   test("the free models are tried in the planned order", () => {
     expect([...SCAN_MODELS]).toEqual([
-      "qwen/qwen2.5-vl-72b-instruct:free",
-      "meta-llama/llama-3.2-11b-vision-instruct:free",
-      "google/gemini-2.0-flash-exp:free",
+      "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+      "thinkingmachines/inkling:free",
+      "nex-agi/nex-n2.5-pro:free",
+      "qwen/qwen3.8-27b:free",
+      "google/gemma-4-31b-it:free",
     ]);
   });
 });

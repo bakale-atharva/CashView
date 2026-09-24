@@ -17,9 +17,11 @@ import { DAY_MS, startOfUtcDay } from "./dates";
  * models are rate-limited and occasionally withdrawn, hence the chain.
  */
 export const SCAN_MODELS = [
-  "qwen/qwen2.5-vl-72b-instruct:free",
-  "meta-llama/llama-3.2-11b-vision-instruct:free",
-  "google/gemini-2.0-flash-exp:free",
+  "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+  "thinkingmachines/inkling:free",
+  "nex-agi/nex-n2.5-pro:free",
+  "qwen/qwen3.8-27b:free",
+  "google/gemma-4-31b-it:free",
 ] as const;
 
 export const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
