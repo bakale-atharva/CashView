@@ -3,7 +3,7 @@ import { describe, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import crons from "./crons";
-import { DAY_MS, startOfUtcDay } from "./lib/invoiceMath";
+import { DAY_MS, startOfUtcDay } from "./lib/dates";
 import { newClient, newDraft, newSent, setup } from "./testkit.testutil";
 import type { Ctx } from "./testkit.testutil";
 

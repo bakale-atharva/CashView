@@ -1,5 +1,4 @@
 /// <reference types="vite/client" />
-import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
@@ -10,60 +9,17 @@ import {
 } from "./lib/entitlements";
 import { monthOf } from "./lib/period";
 import type { PlanKey, Scope } from "./lib/validators";
-import schema from "./schema";
-
-const modules = import.meta.glob("./**/*.ts");
+import { identity, setup as baseSetup, subscribe } from "./testkit.testutil";
 
 const q = (name: string) => makeFunctionReference<"query">(`tenancy.testfns:${name}`);
 const m = (name: string) => makeFunctionReference<"mutation">(`tenancy.testfns:${name}`);
 
-const ISSUER = "https://example.clerk.accounts.dev";
-
-function identity(userId: string, org?: { id: string; rol: string }) {
-  return {
-    issuer: ISSUER,
-    subject: userId,
-    tokenIdentifier: `${ISSUER}|${userId}`,
-    ...(org ? { o: { id: org.id, rol: org.rol, slg: "slug" } } : {}),
-  };
-}
-
+/** The shared actors plus an org admin, which only these tests need. */
 function setup() {
-  const t = convexTest(schema, modules);
-  return {
-    t,
-    owner: t.withIdentity(identity("user_alice", { id: "org_A", rol: "owner" })),
-    admin: t.withIdentity(identity("user_adm", { id: "org_A", rol: "admin" })),
-    accountant: t.withIdentity(identity("user_acc", { id: "org_A", rol: "accountant" })),
-    viewer: t.withIdentity(identity("user_view", { id: "org_A", rol: "member" })),
-    bob: t.withIdentity(identity("user_bob", { id: "org_B", rol: "owner" })),
-    personal: t.withIdentity(identity("user_alice")),
-  };
+  const base = baseSetup();
+  return { ...base, admin: base.t.withIdentity(identity("user_adm", { id: "org_A", rol: "admin" })) };
 }
 type Ctx = ReturnType<typeof setup>;
-
-let itemSeq = 0;
-/** Stands in for the webhook sync: writes a subscription row for a payer. */
-function subscribe(
-  t: Ctx["t"],
-  scopeId: string,
-  planKey: PlanKey,
-  status = "active",
-  scopeKind: "org" | "user" = "org",
-) {
-  return t.run((ctx) =>
-    ctx.db.insert("subscriptions", {
-      scopeId,
-      scopeKind,
-      planKey,
-      clerkPlanSlug: `${planKey}_${scopeKind}`,
-      clerkSubscriptionItemId: `subi_${++itemSeq}`,
-      status,
-      features: [],
-    }),
-  );
-}
-
 type Actor = Ctx["owner"];
 const makeClients = async (actor: Actor, n: number) => {
   const ids = [];

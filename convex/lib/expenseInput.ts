@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { DAY_MS, startOfUtcDay } from "./dates";
-import { invalidInput } from "./errors";
+import { optionalCurrencyCode } from "./currency";
+import { invalidInput, optionalText, requiredText } from "./errors";
 
 /**
  * The editable fields of an expense, as the client sends them. The receipt and
@@ -23,7 +24,6 @@ export const vExpenseInput = {
 };
 
 const MAX_CENTS = 1e12;
-const CURRENCY = /^[A-Z]{3}$/;
 
 export type NormalizedExpense = {
   vendor: string;
@@ -35,13 +35,6 @@ export type NormalizedExpense = {
   paymentMethod: string;
   isBillable: boolean;
 };
-
-function text(value: string, field: string, max: number): string {
-  const trimmed = value.trim();
-  if (trimmed === "") throw invalidInput(field, "This field is required.");
-  if (trimmed.length > max) throw invalidInput(field, `Must be ${max} characters or fewer.`);
-  return trimmed;
-}
 
 /**
  * Cleans and validates expense input, throwing a typed INVALID_INPUT that
@@ -81,36 +74,30 @@ export function normalizeExpenseInput(
     throw invalidInput("spentAt", "The date cannot be in the future.");
   }
 
-  const currency = input.currency?.trim().toUpperCase();
-  if (currency && !CURRENCY.test(currency)) {
-    throw invalidInput("currency", "Use a three-letter currency code, such as USD.");
-  }
+  const currency = optionalCurrencyCode(input.currency);
 
   const isBillable = input.isBillable ?? false;
   if (isBillable && input.clientId === undefined) {
     throw invalidInput("clientId", "Choose the client this expense will be billed to.");
   }
 
-  const description = input.description?.trim() || undefined;
-  if (description !== undefined && description.length > 1000) {
-    throw invalidInput("description", "Must be 1000 characters or fewer.");
-  }
+  const description = optionalText(input.description, "description", 1000);
 
   return {
-    vendor: text(input.vendor, "vendor", 200),
+    vendor: requiredText(input.vendor, "vendor", 200),
     description,
     amountCents,
     taxCents,
-    currency: currency || undefined,
+    currency,
     spentAt: startOfUtcDay(spentAt),
-    paymentMethod: text(input.paymentMethod, "paymentMethod", 50),
+    paymentMethod: requiredText(input.paymentMethod, "paymentMethod", 50),
     isBillable,
   };
 }
 
 /** Category names: 1 to 60 characters. */
 export function normalizeCategoryName(name: string): string {
-  return text(name, "name", 60);
+  return requiredText(name, "name", 60);
 }
 
 export const MAX_CATEGORIES = 100;

@@ -2,10 +2,12 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
-import { computeTotals, formatInvoiceNumber, startOfUtcDay } from "./lib/invoiceMath";
+import { DAY_MS, startOfUtcDay } from "./lib/dates";
+import { computeTotals, formatInvoiceNumber } from "./lib/invoiceMath";
 import { getEntitlements, getUsage, hasFeature } from "./lib/entitlements";
 import { internalScopedMutation } from "./lib/functions";
 import { mintPublicToken } from "./lib/publicToken";
+import { getScopeSettings } from "./lib/scopeDefaults";
 import type { Doc, Id, TableNames } from "./_generated/dataModel";
 import { vPlanKey } from "./lib/validators";
 import type { PlanKey } from "./lib/validators";
@@ -31,8 +33,6 @@ import type { PlanKey } from "./lib/validators";
  *   npx convex run seed:clearScope '{"scopeId":"org_..."}'
  *   npx convex run seed:seedScope '{"scope":{"scopeId":"org_...","scopeKind":"org","userId":"user_...","role":"owner"},"expectPlan":"pro"}'
  */
-
-const DAY_MS = 86_400_000;
 
 function randomInt(min: number, max: number): number {
   return min + Math.floor(Math.random() * (max - min + 1));
@@ -203,10 +203,7 @@ export const seedScope = internalScopedMutation({
     // plan's whole budget lands in the current month; issue dates follow.
     const thisMonthOnly = Number.isFinite(entitlements.invoicesPerMonth);
 
-    const settings = await ctx.db
-      .query("scopeSettings")
-      .withIndex("by_scopeId", (q) => q.eq("scopeId", ctx.scope.scopeId))
-      .first();
+    const settings = await getScopeSettings(ctx, ctx.scope.scopeId);
     if (!settings) {
       throw new Error(
         `No scopeSettings for ${ctx.scope.scopeId} — sync the org/user first (see docs/clerk-setup.md).`,
@@ -498,10 +495,7 @@ export const clearScope = internalMutation({
         return { deleted, continuing: true };
       }
     }
-    const settings = await ctx.db
-      .query("scopeSettings")
-      .withIndex("by_scopeId", (q) => q.eq("scopeId", scopeId))
-      .first();
+    const settings = await getScopeSettings(ctx, scopeId);
     if (settings) await ctx.db.patch("scopeSettings", settings._id, { nextInvoiceSeq: 1 });
     return { deleted, continuing: false };
   },

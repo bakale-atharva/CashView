@@ -1,58 +1,15 @@
 /// <reference types="vite/client" />
-import { convexTest } from "convex-test";
 import { makeFunctionReference } from "convex/server";
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import type { PlanKey } from "./lib/validators";
-import schema from "./schema";
-
-const modules = import.meta.glob("./**/*.ts");
+import { page, setup, subscribe } from "./testkit.testutil";
+import type { Actor, Ctx } from "./testkit.testutil";
 
 const m = (name: string) => makeFunctionReference<"mutation">(`tenancy.testfns:${name}`);
 
-const ISSUER = "https://example.clerk.accounts.dev";
-
-function identity(userId: string, org?: { id: string; rol: string }) {
-  return {
-    issuer: ISSUER,
-    subject: userId,
-    tokenIdentifier: `${ISSUER}|${userId}`,
-    ...(org ? { o: { id: org.id, rol: org.rol, slg: "slug" } } : {}),
-  };
-}
-
-function setup() {
-  const t = convexTest(schema, modules);
-  return {
-    t,
-    owner: t.withIdentity(identity("user_alice", { id: "org_A", rol: "owner" })),
-    accountant: t.withIdentity(identity("user_acc", { id: "org_A", rol: "accountant" })),
-    viewer: t.withIdentity(identity("user_view", { id: "org_A", rol: "member" })),
-    bob: t.withIdentity(identity("user_bob", { id: "org_B", rol: "owner" })),
-    personal: t.withIdentity(identity("user_alice")),
-  };
-}
-type Ctx = ReturnType<typeof setup>;
-type Actor = Ctx["owner"];
-
-const page = (numItems: number, cursor: string | null = null) => ({ numItems, cursor });
 const listAll = async (actor: Actor, extra: { archived?: boolean; search?: string } = {}) =>
   (await actor.query(api.clients.list, { paginationOpts: page(100), ...extra })).page;
-
-let itemSeq = 0;
-const subscribe = (t: Ctx["t"], scopeId: string, planKey: PlanKey) =>
-  t.run((ctx) =>
-    ctx.db.insert("subscriptions", {
-      scopeId,
-      scopeKind: "org",
-      planKey,
-      clerkPlanSlug: `${planKey}_org`,
-      clerkSubscriptionItemId: `subi_${++itemSeq}`,
-      status: "active",
-      features: [],
-    }),
-  );
 
 /** A raw invoice row for a client, bypassing triggers (no balances involved). */
 const rawInvoice = (t: Ctx["t"], clientId: Id<"clients">, issueDate = 0, scopeId = "org_A") =>

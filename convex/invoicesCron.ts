@@ -2,8 +2,9 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation } from "./_generated/server";
 import { getInScope, internalScopedMutation } from "./lib/functions";
-import { startOfUtcDay } from "./lib/invoiceMath";
+import { startOfUtcDay } from "./lib/dates";
 import { assertTransition, isPastDue } from "./lib/invoiceStatus";
+import { systemScope } from "./lib/scope";
 
 /**
  * Marks open invoices overdue once their due day has passed. Run daily by
@@ -35,12 +36,7 @@ export const markOverdue = internalMutation({
       for (const invoice of due) {
         try {
           const moved = await ctx.runMutation(internal.invoicesCron.markOverdueOne, {
-            scope: {
-              scopeId: invoice.scopeId,
-              scopeKind: invoice.scopeKind,
-              userId: "system",
-              role: "owner",
-            },
+            scope: systemScope(invoice),
             id: invoice._id,
           });
           if (moved) changed++;

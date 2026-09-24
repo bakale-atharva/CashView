@@ -8,6 +8,7 @@ import { getInScope, internalScopedMutation } from "./lib/functions";
 import { allocateNumber, loadSettings, writeLines } from "./invoices";
 import { MAX_LINES, computeTotals } from "./lib/invoiceMath";
 import { occurrenceAfter } from "./lib/recurrence";
+import { systemScope } from "./lib/scope";
 
 /**
  * Turns due recurring templates into draft invoices. Run daily by crons.ts;
@@ -47,12 +48,7 @@ export const generateDue = internalMutation({
         const outcome: GenerateOutcome = await ctx.runMutation(
           internal.recurringCron.generateOne,
           {
-            scope: {
-              scopeId: template.scopeId,
-              scopeKind: template.scopeKind,
-              userId: "system",
-              role: "owner",
-            },
+            scope: systemScope(template),
             id: template._id,
           },
         );

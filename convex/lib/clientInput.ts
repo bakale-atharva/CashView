@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
-import { invalidInput as invalid } from "./errors";
+import { optionalCurrencyCode } from "./currency";
+import { invalidInput as invalid, optionalText as optional, requiredText as required } from "./errors";
 import { vAddress } from "./validators";
 
 /**
@@ -42,28 +43,9 @@ const LIMITS = {
   country: 100,
 } as const;
 
-/** Trims; an empty or blank optional value means "not set". */
-function optional(
-  value: string | undefined,
-  field: string,
-  max: number,
-): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
-  if (trimmed.length > max) throw invalid(field, `Must be ${max} characters or fewer.`);
-  return trimmed;
-}
-
-function required(value: string, field: string, max: number): string {
-  const trimmed = optional(value, field, max);
-  if (trimmed === undefined) throw invalid(field, "This field is required.");
-  return trimmed;
-}
-
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Digits plus the punctuation people actually type; not a strict E.164 check.
 const PHONE = /^[\d\s+().\-#xX]{3,40}$/;
-const CURRENCY = /^[A-Z]{3}$/;
 
 /**
  * Cleans and validates client input, throwing a typed INVALID_INPUT that
@@ -81,10 +63,7 @@ export function normalizeClientInput(input: ClientInput): NormalizedClient {
     throw invalid("phone", "Enter a valid phone number.");
   }
 
-  const currency = input.currency?.trim().toUpperCase();
-  if (currency !== undefined && currency !== "" && !CURRENCY.test(currency)) {
-    throw invalid("currency", "Use a three-letter currency code, such as USD.");
-  }
+  const currency = optionalCurrencyCode(input.currency);
 
   let billingAddress: NormalizedClient["billingAddress"];
   if (input.billingAddress) {
@@ -106,6 +85,6 @@ export function normalizeClientInput(input: ClientInput): NormalizedClient {
     phone,
     billingAddress,
     notes: optional(input.notes, "notes", LIMITS.notes),
-    currency: currency || undefined,
+    currency,
   };
 }

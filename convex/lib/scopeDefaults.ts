@@ -1,4 +1,4 @@
-import type { MutationCtx } from "../_generated/server";
+import type { DatabaseReader, MutationCtx } from "../_generated/server";
 import type { ScopeKind } from "./validators";
 
 export const DEFAULT_EXPENSE_CATEGORIES = [
@@ -18,6 +18,14 @@ export const DEFAULT_EXPENSE_CATEGORIES = [
   "Other",
 ] as const;
 
+/** The scope's settings document, or null if it was never created. */
+export async function getScopeSettings(ctx: { db: DatabaseReader }, scopeId: string) {
+  return await ctx.db
+    .query("scopeSettings")
+    .withIndex("by_scopeId", (q) => q.eq("scopeId", scopeId))
+    .first();
+}
+
 /**
  * Gives a scope its settings document and starter expense categories.
  * Idempotent, so it is safe to call from at-least-once webhook handlers and
@@ -32,10 +40,7 @@ export async function ensureScopeDefaults(
 ): Promise<void> {
   const { scopeId, scopeKind } = scope;
 
-  const settings = await ctx.db
-    .query("scopeSettings")
-    .withIndex("by_scopeId", (q) => q.eq("scopeId", scopeId))
-    .first();
+  const settings = await getScopeSettings(ctx, scopeId);
   if (settings === null) {
     await ctx.db.insert("scopeSettings", {
       scopeId,

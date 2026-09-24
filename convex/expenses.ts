@@ -247,6 +247,15 @@ export const isReceiptClaimed = internalQuery({
  * deletion back). A file another expense already holds is refused without
  * being touched, and is indistinguishable from one that does not exist.
  */
+/** A receipt change invalidates anything scanned from the old file. */
+const CLEARED_OCR = {
+  ocrStatus: "none",
+  ocrRaw: undefined,
+  ocrSuggestion: undefined,
+  ocrError: undefined,
+  ocrStartedAt: undefined,
+} as const;
+
 export const attachReceipt = scopedMutation({
   args: { id: v.id("expenses"), storageId: v.id("_storage") },
   handler: async (ctx, { id, storageId }) => {
@@ -269,11 +278,7 @@ export const attachReceipt = scopedMutation({
     // A different file invalidates anything scanned from the old one.
     await ctx.db.patch("expenses", id, {
       receiptStorageId: storageId,
-      ocrStatus: "none",
-      ocrRaw: undefined,
-      ocrSuggestion: undefined,
-      ocrError: undefined,
-      ocrStartedAt: undefined,
+      ...CLEARED_OCR,
     });
     if (expense.receiptStorageId) await ctx.storage.delete(expense.receiptStorageId);
     return { ok: true as const };
@@ -289,11 +294,7 @@ export const detachReceipt = scopedMutation({
     if (!expense.receiptStorageId) return;
     await ctx.db.patch("expenses", id, {
       receiptStorageId: undefined,
-      ocrStatus: "none",
-      ocrRaw: undefined,
-      ocrSuggestion: undefined,
-      ocrError: undefined,
-      ocrStartedAt: undefined,
+      ...CLEARED_OCR,
     });
     await ctx.storage.delete(expense.receiptStorageId);
   },

@@ -10,3 +10,18 @@ export const invalidInput = (field: string, message: string) =>
 /** The record is in a state that does not allow this action. */
 export const conflict = (reason: string, details: Record<string, Value> = {}) =>
   new ConvexError({ code: "CONFLICT", reason, ...details });
+
+/** Trims; an empty or blank optional value means "not set". */
+export function optionalText(value: string | undefined, field: string, max: number): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (trimmed.length > max) throw invalidInput(field, `Must be ${max} characters or fewer.`);
+  return trimmed;
+}
+
+/** Trims, then insists on something being left. */
+export function requiredText(value: string, field: string, max: number): string {
+  const trimmed = optionalText(value, field, max);
+  if (trimmed === undefined) throw invalidInput(field, "This field is required.");
+  return trimmed;
+}

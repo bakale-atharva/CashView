@@ -1,6 +1,6 @@
 import { ConvexError } from "convex/values";
 import type { Auth, UserIdentity } from "convex/server";
-import type { Role, Scope } from "./validators";
+import type { Role, Scope, ScopeKind } from "./validators";
 
 /**
  * Who is asking, and on whose books. Derived from the verified JWT alone.
@@ -131,4 +131,12 @@ export function requireCapability(scope: Scope, capability: Capability): void {
   if (!hasCapability(scope, capability)) {
     throw new ConvexError({ code: "FORBIDDEN", capability });
   }
+}
+
+/**
+ * The actor a cron job acts as when it touches one scope's records: an owner
+ * with no real user behind it, so audit rows read "system".
+ */
+export function systemScope(doc: { scopeId: string; scopeKind: ScopeKind }): Scope {
+  return { scopeId: doc.scopeId, scopeKind: doc.scopeKind, userId: "system", role: "owner" };
 }

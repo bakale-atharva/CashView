@@ -4,6 +4,7 @@ import { mutation, query } from "./_generated/server";
 import type { QueryCtx } from "./_generated/server";
 import { MAX_LINES } from "./lib/invoiceMath";
 import { looksLikePublicToken } from "./lib/publicToken";
+import { getScopeSettings } from "./lib/scopeDefaults";
 
 /**
  * The ONLY unauthenticated functions in the codebase (the Clerk webhook is the
@@ -40,10 +41,7 @@ export const getInvoiceByToken = query({
 
     const [client, settings, lines] = await Promise.all([
       ctx.db.get("clients", invoice.clientId),
-      ctx.db
-        .query("scopeSettings")
-        .withIndex("by_scopeId", (q) => q.eq("scopeId", invoice.scopeId))
-        .first(),
+      getScopeSettings(ctx, invoice.scopeId),
       ctx.db
         .query("invoiceLineItems")
         .withIndex("by_scopeId_and_invoiceId_and_position", (q) =>

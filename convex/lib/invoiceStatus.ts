@@ -1,5 +1,5 @@
 import { ConvexError } from "convex/values";
-import { startOfUtcDay } from "./invoiceMath";
+import { startOfUtcDay } from "./dates";
 import type { InvoiceStatus } from "./validators";
 
 /**

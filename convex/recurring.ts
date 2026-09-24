@@ -11,6 +11,7 @@ import { getInScope, scopedMutation, scopedQuery } from "./lib/functions";
 import { MAX_LINES, computeTotals, vLineItemInput } from "./lib/invoiceMath";
 import { occurrenceOnOrAfter } from "./lib/recurrence";
 import { requireCapability } from "./lib/scope";
+import { getScopeSettings } from "./lib/scopeDefaults";
 import { vRecurringFrequency } from "./lib/validators";
 import type { Scope } from "./lib/validators";
 
@@ -74,10 +75,7 @@ async function prepare(
     if (endDate < startDate) throw invalidInput("endDate", "The end date cannot be before the start date.");
   }
 
-  const settings = await ctx.db
-    .query("scopeSettings")
-    .withIndex("by_scopeId", (q) => q.eq("scopeId", ctx.scope.scopeId))
-    .first();
+  const settings = await getScopeSettings(ctx, ctx.scope.scopeId);
   const paymentTermsDays = input.paymentTermsDays ?? settings?.paymentTermsDays ?? 30;
   if (!Number.isInteger(paymentTermsDays) || paymentTermsDays < 0 || paymentTermsDays > 365) {
     throw invalidInput("paymentTermsDays", "Enter a whole number of days from 0 to 365.");

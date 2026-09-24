@@ -1,31 +1,8 @@
 /// <reference types="vite/client" />
-import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
 import { DEFAULT_EXPENSE_CATEGORIES } from "./lib/scopeDefaults";
-import schema from "./schema";
-
-const modules = import.meta.glob("./**/*.ts");
-const ISSUER = "https://example.clerk.accounts.dev";
-
-function identity(userId: string, org?: { id: string; rol: string }) {
-  return {
-    issuer: ISSUER,
-    subject: userId,
-    tokenIdentifier: `${ISSUER}|${userId}`,
-    ...(org ? { o: { id: org.id, rol: org.rol, slg: "slug" } } : {}),
-  };
-}
-function setup() {
-  const t = convexTest(schema, modules);
-  return {
-    t,
-    owner: t.withIdentity(identity("user_alice", { id: "org_A", rol: "owner" })),
-    accountant: t.withIdentity(identity("user_acc", { id: "org_A", rol: "accountant" })),
-    viewer: t.withIdentity(identity("user_view", { id: "org_A", rol: "member" })),
-    bob: t.withIdentity(identity("user_bob", { id: "org_B", rol: "owner" })),
-  };
-}
+import { setup } from "./testkit.testutil";
 
 const names = async (actor: ReturnType<typeof setup>["owner"]) =>
   (await actor.query(api.expenseCategories.list, {})).map((c) => c.name);

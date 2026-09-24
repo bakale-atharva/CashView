@@ -1,12 +1,6 @@
 import { describe, expect, test } from "vitest";
-import {
-  DAY_MS,
-  MAX_LINES,
-  computeTotals,
-  formatInvoiceNumber,
-  resolveDates,
-  startOfUtcDay,
-} from "./invoiceMath";
+import { DAY_MS, startOfUtcDay } from "./dates";
+import { MAX_LINES, computeTotals, formatInvoiceNumber, resolveDates } from "./invoiceMath";
 
 const line = (over: Partial<Parameters<typeof computeTotals>[0][number]> = {}) => ({
   description: "Work",

@@ -1,54 +1,10 @@
 /// <reference types="vite/client" />
-import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { DAY_MS } from "./lib/dates";
-import type { PlanKey } from "./lib/validators";
-import schema from "./schema";
-
-const modules = import.meta.glob("./**/*.ts");
-const ISSUER = "https://example.clerk.accounts.dev";
-
-function identity(userId: string, org?: { id: string; rol: string }) {
-  return {
-    issuer: ISSUER,
-    subject: userId,
-    tokenIdentifier: `${ISSUER}|${userId}`,
-    ...(org ? { o: { id: org.id, rol: org.rol, slg: "slug" } } : {}),
-  };
-}
-function setup() {
-  const t = convexTest(schema, modules);
-  return {
-    t,
-    owner: t.withIdentity(identity("user_alice", { id: "org_A", rol: "owner" })),
-    viewer: t.withIdentity(identity("user_view", { id: "org_A", rol: "member" })),
-    bob: t.withIdentity(identity("user_bob", { id: "org_B", rol: "owner" })),
-    personal: t.withIdentity(identity("user_alice")),
-  };
-}
-type Ctx = ReturnType<typeof setup>;
-
-let itemSeq = 0;
-const subscribe = (
-  t: Ctx["t"],
-  scopeId: string,
-  planKey: PlanKey,
-  status = "active",
-  scopeKind: "org" | "user" = "org",
-) =>
-  t.run((ctx) =>
-    ctx.db.insert("subscriptions", {
-      scopeId,
-      scopeKind,
-      planKey,
-      clerkPlanSlug: `${planKey}_${scopeKind}`,
-      clerkSubscriptionItemId: `subi_${++itemSeq}`,
-      status,
-      features: [],
-    }),
-  );
+import { setup, subscribe } from "./testkit.testutil";
+import type { Ctx } from "./testkit.testutil";
 
 /** UTC date helper. */
 const d = (y: number, m: number, day = 1, h = 0, min = 0, s = 0, ms = 0) =>

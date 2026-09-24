@@ -21,7 +21,7 @@ import {
 } from "./lib/invoiceStatus";
 import { mintPublicToken } from "./lib/publicToken";
 import { requireCapability } from "./lib/scope";
-import { ensureScopeDefaults } from "./lib/scopeDefaults";
+import { ensureScopeDefaults, getScopeSettings } from "./lib/scopeDefaults";
 import { vInvoiceStatus } from "./lib/validators";
 import type { Scope } from "./lib/validators";
 
@@ -52,10 +52,7 @@ export async function loadSettings(ctx: Ctx) {
     scopeId: ctx.scope.scopeId,
     scopeKind: ctx.scope.scopeKind,
   });
-  const settings = await ctx.db
-    .query("scopeSettings")
-    .withIndex("by_scopeId", (q) => q.eq("scopeId", ctx.scope.scopeId))
-    .first();
+  const settings = await getScopeSettings(ctx, ctx.scope.scopeId);
   if (settings === null) throw new Error("scopeSettings missing after ensureScopeDefaults");
   return settings;
 }

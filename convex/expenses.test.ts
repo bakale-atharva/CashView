@@ -1,53 +1,11 @@
 /// <reference types="vite/client" />
-import { convexTest } from "convex-test";
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { DAY_MS, startOfUtcDay } from "./lib/dates";
 import { MAX_RECEIPT_BYTES } from "./lib/receipts";
-import type { PlanKey } from "./lib/validators";
-import schema from "./schema";
-
-const modules = import.meta.glob("./**/*.ts");
-const ISSUER = "https://example.clerk.accounts.dev";
-
-function identity(userId: string, org?: { id: string; rol: string }) {
-  return {
-    issuer: ISSUER,
-    subject: userId,
-    tokenIdentifier: `${ISSUER}|${userId}`,
-    ...(org ? { o: { id: org.id, rol: org.rol, slg: "slug" } } : {}),
-  };
-}
-function setup() {
-  const t = convexTest(schema, modules);
-  return {
-    t,
-    owner: t.withIdentity(identity("user_alice", { id: "org_A", rol: "owner" })),
-    accountant: t.withIdentity(identity("user_acc", { id: "org_A", rol: "accountant" })),
-    viewer: t.withIdentity(identity("user_view", { id: "org_A", rol: "member" })),
-    bob: t.withIdentity(identity("user_bob", { id: "org_B", rol: "owner" })),
-    personal: t.withIdentity(identity("user_alice")),
-  };
-}
-type Ctx = ReturnType<typeof setup>;
-type Actor = Ctx["owner"];
-
-const page = (numItems: number, cursor: string | null = null) => ({ numItems, cursor });
-
-let itemSeq = 0;
-const subscribe = (t: Ctx["t"], scopeId: string, planKey: PlanKey) =>
-  t.run((ctx) =>
-    ctx.db.insert("subscriptions", {
-      scopeId,
-      scopeKind: "org",
-      planKey,
-      clerkPlanSlug: `${planKey}_org`,
-      clerkSubscriptionItemId: `subi_${++itemSeq}`,
-      status: "active",
-      features: [],
-    }),
-  );
+import { page, setup, subscribe } from "./testkit.testutil";
+import type { Actor, Ctx } from "./testkit.testutil";
 
 const newCategory = (actor: Actor, name = "Software") => actor.mutation(api.expenseCategories.create, { name });
 const newClient = (actor: Actor, name = "Acme") => actor.mutation(api.clients.create, { name });

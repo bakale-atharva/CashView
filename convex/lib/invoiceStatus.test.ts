@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { DAY_MS, startOfUtcDay } from "./invoiceMath";
+import { DAY_MS, startOfUtcDay } from "./dates";
 import { looksLikePublicToken, mintPublicToken } from "./publicToken";
 import {
   PAYABLE,

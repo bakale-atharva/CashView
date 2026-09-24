@@ -1,8 +1,12 @@
 import { v } from "convex/values";
-import { invalidInput } from "./lib/errors";
+import type { DatabaseReader } from "./_generated/server";
+import { invalidInput, optionalText as text } from "./lib/errors";
+import { normalizeCurrencyCode } from "./lib/currency";
 import { scopedMutation, scopedQuery } from "./lib/functions";
 import { requireCapability } from "./lib/scope";
+import { getScopeSettings } from "./lib/scopeDefaults";
 import { vAddress } from "./lib/validators";
+import type { Scope } from "./lib/validators";
 
 /**
  * A scope's business identity, branding and invoice defaults (one row per
@@ -28,24 +32,17 @@ const vSettingsInput = {
   footerNote: v.optional(v.string()),
 };
 
-const CURRENCY = /^[A-Z]{3}$/;
-
-function text(value: string | undefined, field: string, max: number): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
-  if (trimmed.length > max) throw invalidInput(field, `Must be ${max} characters or fewer.`);
-  return trimmed;
+async function requireSettings(ctx: { db: DatabaseReader; scope: Scope }) {
+  const settings = await getScopeSettings(ctx, ctx.scope.scopeId);
+  if (settings === null) throw new Error("scopeSettings missing for an active scope");
+  return settings;
 }
 
 export const get = scopedQuery({
   args: {},
   handler: async (ctx) => {
     requireCapability(ctx.scope, "clients.read");
-    const settings = await ctx.db
-      .query("scopeSettings")
-      .withIndex("by_scopeId", (q) => q.eq("scopeId", ctx.scope.scopeId))
-      .first();
-    if (settings === null) throw new Error("scopeSettings missing for an active scope");
+    const settings = await requireSettings(ctx);
     const logoUrl = settings.logoStorageId ? await ctx.storage.getUrl(settings.logoStorageId) : null;
     return { ...settings, logoUrl };
   },
@@ -55,16 +52,9 @@ export const update = scopedMutation({
   args: vSettingsInput,
   handler: async (ctx, args) => {
     requireCapability(ctx.scope, "settings.manage");
-    const settings = await ctx.db
-      .query("scopeSettings")
-      .withIndex("by_scopeId", (q) => q.eq("scopeId", ctx.scope.scopeId))
-      .first();
-    if (settings === null) throw new Error("scopeSettings missing for an active scope");
+    const settings = await requireSettings(ctx);
 
-    const currency = args.currency.trim().toUpperCase();
-    if (!CURRENCY.test(currency)) {
-      throw invalidInput("currency", "Use a three-letter currency code, such as USD.");
-    }
+    const currency = normalizeCurrencyCode(args.currency);
     const { defaultTaxRatePct, paymentTermsDays } = args;
     if (!Number.isFinite(defaultTaxRatePct) || defaultTaxRatePct < 0 || defaultTaxRatePct > 100) {
       throw invalidInput("defaultTaxRatePct", "Enter a rate from 0 to 100.");
@@ -126,11 +116,7 @@ export const attachLogo = scopedMutation({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, { storageId }) => {
     requireCapability(ctx.scope, "settings.manage");
-    const settings = await ctx.db
-      .query("scopeSettings")
-      .withIndex("by_scopeId", (q) => q.eq("scopeId", ctx.scope.scopeId))
-      .first();
-    if (settings === null) throw new Error("scopeSettings missing for an active scope");
+    const settings = await requireSettings(ctx);
     const old = settings.logoStorageId;
     await ctx.db.patch("scopeSettings", settings._id, { logoStorageId: storageId });
     if (old) await ctx.storage.delete(old);
@@ -141,10 +127,7 @@ export const removeLogo = scopedMutation({
   args: {},
   handler: async (ctx) => {
     requireCapability(ctx.scope, "settings.manage");
-    const settings = await ctx.db
-      .query("scopeSettings")
-      .withIndex("by_scopeId", (q) => q.eq("scopeId", ctx.scope.scopeId))
-      .first();
+    const settings = await getScopeSettings(ctx, ctx.scope.scopeId);
     if (settings === null || !settings.logoStorageId) return;
     const old = settings.logoStorageId;
     await ctx.db.patch("scopeSettings", settings._id, { logoStorageId: undefined });

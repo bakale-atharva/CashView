@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
+import { DAY_MS, startOfUtcDay } from "./dates";
 import { invalidInput } from "./errors";
 
 /**
@@ -9,11 +10,6 @@ import { invalidInput } from "./errors";
  * Order, as the plan specifies: each line's amount, then per-line tax, then
  * subtotal and tax summed, then a flat discount off the top, then the total.
  */
-
-export const DAY_MS = 86_400_000;
-
-/** Date-only fields hold UTC midnight of their day. */
-export const startOfUtcDay = (ms: number): number => Math.floor(ms / DAY_MS) * DAY_MS;
 
 /** Generous, but bounded: a document may not hold an unbounded list. */
 export const MAX_LINES = 100;

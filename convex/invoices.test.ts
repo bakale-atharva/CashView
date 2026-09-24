@@ -2,7 +2,7 @@
 import { describe, expect, test } from "vitest";
 import { api } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
-import { DAY_MS, startOfUtcDay } from "./lib/invoiceMath";
+import { DAY_MS, startOfUtcDay } from "./lib/dates";
 import {
   DAY,
   line,
