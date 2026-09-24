@@ -10,12 +10,17 @@ import { XAxis } from "@/components/charts/x-axis";
 import { ChartTooltip } from "@/components/charts/tooltip";
 import { UpgradePrompt } from "./upgrade-prompt";
 
-export function CashFlowChart({ from, to }: { from: number; to: number }) {
+export function CashFlowChart({
+  from,
+  to,
+  granularity = "month",
+}: {
+  from: number;
+  to: number;
+  granularity?: "month" | "quarter" | "year";
+}) {
   const hasReports = useFeature("reports");
-  const cashFlow = useQuery(
-    api.reports.cashFlow,
-    hasReports ? { from, to, granularity: "month" } : "skip",
-  );
+  const cashFlow = useQuery(api.reports.cashFlow, hasReports ? { from, to, granularity } : "skip");
 
   if (hasReports === false) {
     return <UpgradePrompt feature="Cash flow" />;
