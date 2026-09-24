@@ -8,7 +8,7 @@ import { Bar } from "@/components/charts/bar";
 import { BarChart } from "@/components/charts/bar-chart";
 import { ChartTooltip } from "@/components/charts/tooltip";
 import { Grid } from "@/components/charts/grid";
-import { XAxis } from "@/components/charts/x-axis";
+import { BarXAxis } from "@/components/charts/bar-x-axis";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function ProfitLossReport({
@@ -54,7 +54,7 @@ export function ProfitLossReport({
         <Grid horizontal />
         <Bar dataKey="revenueCents" fill="var(--chart-line-primary)" />
         <Bar dataKey="expensesCents" fill="var(--stamp-overdue)" />
-        <XAxis />
+        <BarXAxis />
         <ChartTooltip />
       </BarChart>
     </div>

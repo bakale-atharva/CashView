@@ -6,7 +6,7 @@ import { useFeature } from "@/lib/use-entitlements";
 import { Bar } from "@/components/charts/bar";
 import { BarChart } from "@/components/charts/bar-chart";
 import { Grid } from "@/components/charts/grid";
-import { XAxis } from "@/components/charts/x-axis";
+import { BarXAxis } from "@/components/charts/bar-x-axis";
 import { ChartTooltip } from "@/components/charts/tooltip";
 import { UpgradePrompt } from "./upgrade-prompt";
 
@@ -46,7 +46,7 @@ export function CashFlowChart({
       <Grid horizontal />
       <Bar dataKey="inCents" fill="var(--stamp-paid)" />
       <Bar dataKey="outCents" fill="var(--stamp-overdue)" />
-      <XAxis />
+      <BarXAxis />
       <ChartTooltip />
     </BarChart>
   );
