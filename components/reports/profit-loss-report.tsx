@@ -26,7 +26,7 @@ export function ProfitLossReport({
     return <Skeleton className="h-64 w-full" />;
   }
 
-  const series = data.series.map((row) => ({ ...row, date: row.start }));
+  const series = data.series.map((row) => ({ ...row, date: row.period }));
 
   return (
     <div className="flex flex-col gap-4">
@@ -50,7 +50,7 @@ export function ProfitLossReport({
           </p>
         </div>
       </div>
-      <BarChart data={series} status="ready">
+      <BarChart data={series} xDataKey="date" status="ready">
         <Grid horizontal />
         <Bar dataKey="revenueCents" fill="var(--chart-line-primary)" />
         <Bar dataKey="expensesCents" fill="var(--stamp-overdue)" />

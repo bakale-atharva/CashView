@@ -75,8 +75,8 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {loading
-                ? ["a", "b", "c", "d"].map((key) => (
-                    <SidebarMenuSkeleton key={key} showIcon />
+                ? ["a", "b", "c", "d"].map((key, i) => (
+                    <SidebarMenuSkeleton key={key} showIcon index={i} />
                   ))
                 : primary.map((item) => (
                     <NavLink key={item.href} item={item} pathname={pathname} />

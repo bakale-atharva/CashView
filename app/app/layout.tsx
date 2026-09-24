@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
+import { AuthGate } from "@/components/app-shell/auth-gate";
 import { CommandPaletteProvider } from "@/components/app-shell/command-palette";
 import { PageTransition } from "@/components/app-shell/page-transition";
 import { TopBar } from "@/components/app-shell/top-bar";
@@ -20,7 +21,9 @@ export default async function AppLayout({
         <SidebarInset>
           <TopBar />
           <main className="flex flex-1 flex-col overflow-auto p-6">
-            <PageTransition>{children}</PageTransition>
+            <PageTransition>
+              <AuthGate>{children}</AuthGate>
+            </PageTransition>
           </main>
         </SidebarInset>
       </CommandPaletteProvider>

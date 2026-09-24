@@ -10,6 +10,13 @@ import { XAxis } from "@/components/charts/x-axis";
 import { ChartTooltip } from "@/components/charts/tooltip";
 import { UpgradePrompt } from "./upgrade-prompt";
 
+const monthFmt = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  year: "2-digit",
+  timeZone: "UTC",
+});
+const monthLabel = (ms: number) => monthFmt.format(ms);
+
 export function CashFlowChart({
   from,
   to,
@@ -26,12 +33,16 @@ export function CashFlowChart({
     return <UpgradePrompt feature="Cash flow" />;
   }
 
-  // See RevenueChart: the built-in loading skeleton always keys its
-  // synthetic points "date", so real data is remapped to match.
-  const data = cashFlow?.series.map((row) => ({ ...row, date: row.start })) ?? [];
+  // BarChart reads its category from `xDataKey`; give each period a unique,
+  // UTC-based label (a local-time Date would shift the day west of UTC).
+  const data =
+    cashFlow?.series.map((row) => ({
+      ...row,
+      date: granularity === "month" ? monthLabel(row.start) : row.period,
+    })) ?? [];
 
   return (
-    <BarChart data={data} status={cashFlow === undefined ? "loading" : "ready"}>
+    <BarChart data={data} xDataKey="date" status={cashFlow === undefined ? "loading" : "ready"}>
       <Grid horizontal />
       <Bar dataKey="inCents" fill="var(--stamp-paid)" />
       <Bar dataKey="outCents" fill="var(--stamp-overdue)" />
