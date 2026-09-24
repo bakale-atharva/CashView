@@ -27,6 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { StatTile } from "@/components/app-shell/stat-tile";
+import { BackBreadcrumb } from "@/components/app-shell/back-breadcrumb";
 import { RecordPaymentDialog } from "./record-payment-dialog";
 import { StampStrike } from "./stamp-strike";
 
@@ -87,13 +89,7 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: Id<"invoices"> }) {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <Link href="/app/invoices" className="text-sm text-muted-foreground hover:underline">
-                Invoices
-              </Link>
-              <span className="text-sm text-muted-foreground">/</span>
-              <h1 className="text-xl font-semibold tracking-tight">{invoice.invoiceNumber}</h1>
-            </div>
+            <BackBreadcrumb href="/app/invoices" label="Invoices" title={invoice.invoiceNumber} />
             {client && (
               <Link href={`/app/clients/${client._id}`} className="text-sm text-muted-foreground hover:underline">
                 {client.name}
@@ -156,24 +152,15 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: Id<"invoices"> }) {
       )}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Total</p>
-          <p className="font-mono text-2xl font-semibold tabular-nums">
-            {formatCents(invoice.totalCents, invoice.currency)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Paid</p>
-          <p className="font-mono text-2xl font-semibold tabular-nums">
-            {formatCents(invoice.paidCents, invoice.currency)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Balance</p>
-          <p className="font-mono text-2xl font-semibold tabular-nums">
-            {formatCents(balanceCents, invoice.currency)}
-          </p>
-        </div>
+        <StatTile label="Total">
+          {formatCents(invoice.totalCents, invoice.currency)}
+        </StatTile>
+        <StatTile label="Paid">
+          {formatCents(invoice.paidCents, invoice.currency)}
+        </StatTile>
+        <StatTile label="Balance">
+          {formatCents(balanceCents, invoice.currency)}
+        </StatTile>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 text-sm text-muted-foreground">

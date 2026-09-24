@@ -17,7 +17,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -26,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyRow, LoadMoreButton, SkeletonRows } from "@/components/app-shell/table-states";
 
 const FREQUENCY_LABEL: Record<string, string> = {
   weekly: "Weekly",
@@ -85,20 +85,11 @@ export function RecurringList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading &&
-              ["a", "b", "c"].map((key) => (
-                <TableRow key={key}>
-                  <TableCell colSpan={5}>
-                    <Skeleton className="h-6 w-full" />
-                  </TableCell>
-                </TableRow>
-              ))}
+            {loading && <SkeletonRows count={3} colSpan={5} />}
             {!loading && results.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                  No recurring templates yet.
-                </TableCell>
-              </TableRow>
+              <EmptyRow colSpan={5}>
+                No recurring templates yet.
+              </EmptyRow>
             )}
             {results.map((template) => (
               <TableRow key={template._id}>
@@ -169,11 +160,7 @@ export function RecurringList() {
         </Table>
       </div>
 
-      {status === "CanLoadMore" && (
-        <Button variant="outline" onClick={() => loadMore(25)} className="self-center">
-          Load more
-        </Button>
-      )}
+      <LoadMoreButton status={status} onLoadMore={() => loadMore(25)} />
     </div>
   );
 }

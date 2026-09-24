@@ -21,6 +21,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatTile } from "@/components/app-shell/stat-tile";
+import { BackBreadcrumb } from "@/components/app-shell/back-breadcrumb";
 import { ExpenseFormDialog } from "./expense-form-dialog";
 import { ReceiptDropzone } from "./receipt-dropzone";
 
@@ -137,13 +139,7 @@ export function ExpenseDetail({ expenseId }: { expenseId: Id<"expenses"> }) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <Link href="/app/expenses" className="text-sm text-muted-foreground hover:underline">
-              Expenses
-            </Link>
-            <span className="text-sm text-muted-foreground">/</span>
-            <h1 className="text-xl font-semibold tracking-tight">{expense.vendor}</h1>
-          </div>
+          <BackBreadcrumb href="/app/expenses" label="Expenses" title={expense.vendor} />
           <p className="text-sm text-muted-foreground">
             {category?.name ?? "Uncategorised"} · {formatDate(expense.spentAt)}
           </p>
@@ -178,22 +174,15 @@ export function ExpenseDetail({ expenseId }: { expenseId: Id<"expenses"> }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Amount</p>
-          <p className="font-mono text-2xl font-semibold tabular-nums">
-            {formatCents(expense.amountCents, expense.currency)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Tax</p>
-          <p className="font-mono text-2xl font-semibold tabular-nums">
-            {formatCents(expense.taxCents, expense.currency)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Payment method</p>
-          <p className="text-lg font-medium">{expense.paymentMethod}</p>
-        </div>
+        <StatTile label="Amount">
+          {formatCents(expense.amountCents, expense.currency)}
+        </StatTile>
+        <StatTile label="Tax">
+          {formatCents(expense.taxCents, expense.currency)}
+        </StatTile>
+        <StatTile label="Payment method" valueClassName="text-lg font-medium">
+          {expense.paymentMethod}
+        </StatTile>
       </div>
 
       {expense.isBillable && (

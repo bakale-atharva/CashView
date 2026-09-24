@@ -17,7 +17,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -26,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyRow, LoadMoreButton, SkeletonRows } from "@/components/app-shell/table-states";
 import { ClientFormDialog } from "./client-form-dialog";
 
 const PAGE_SIZE = 25;
@@ -143,24 +143,15 @@ export function ClientsView() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading &&
-              ["a", "b", "c", "d", "e"].map((key) => (
-                <TableRow key={key}>
-                  <TableCell colSpan={6}>
-                    <Skeleton className="h-6 w-full" />
-                  </TableCell>
-                </TableRow>
-              ))}
+            {loading && <SkeletonRows count={5} colSpan={6} />}
             {!loading && results.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
-                  {search
-                    ? "No clients match that search."
-                    : showArchived
-                      ? "No archived clients."
-                      : "No clients yet — add your first one to start invoicing."}
-                </TableCell>
-              </TableRow>
+              <EmptyRow colSpan={6}>
+                {search
+                  ? "No clients match that search."
+                  : showArchived
+                    ? "No archived clients."
+                    : "No clients yet — add your first one to start invoicing."}
+              </EmptyRow>
             )}
             {results.map((client) => (
               <TableRow key={client._id}>
@@ -191,11 +182,7 @@ export function ClientsView() {
         </Table>
       </div>
 
-      {status === "CanLoadMore" && (
-        <Button variant="outline" onClick={() => loadMore(PAGE_SIZE)} className="self-center">
-          Load more
-        </Button>
-      )}
+      <LoadMoreButton status={status} onLoadMore={() => loadMore(PAGE_SIZE)} />
 
       <ClientFormDialog open={createOpen} onOpenChange={setCreateOpen} />
     </div>

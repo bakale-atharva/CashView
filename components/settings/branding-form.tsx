@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { SectionCard } from "@/components/app-shell/section-card";
 
 type Settings = Doc<"scopeSettings"> & { logoUrl: string | null };
 
@@ -124,8 +125,7 @@ export function BrandingForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-      <section className="rounded-lg border border-border bg-card p-5">
-        <h2 className="mb-4 text-sm font-semibold">Logo</h2>
+      <SectionCard title="Logo">
         <div className="flex items-center gap-4">
           {settings.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- short-lived Convex storage URL
@@ -163,10 +163,9 @@ export function BrandingForm() {
             }}
           />
         </div>
-      </section>
+      </SectionCard>
 
-      <section className="rounded-lg border border-border bg-card p-5">
-        <h2 className="mb-4 text-sm font-semibold">Business identity</h2>
+      <SectionCard title="Business identity">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label htmlFor="brand-name">Business name</Label>
@@ -197,10 +196,9 @@ export function BrandingForm() {
             <Input id="brand-country" value={form.country} onChange={(e) => set("country", e.target.value)} />
           </div>
         </div>
-      </section>
+      </SectionCard>
 
-      <section className="rounded-lg border border-border bg-card p-5">
-        <h2 className="mb-4 text-sm font-semibold">Invoice defaults</h2>
+      <SectionCard title="Invoice defaults">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label htmlFor="brand-currency">Currency</Label>
@@ -248,7 +246,7 @@ export function BrandingForm() {
             />
           </div>
         </div>
-      </section>
+      </SectionCard>
 
       <Button type="submit" disabled={submitting} className="self-start">
         Save changes

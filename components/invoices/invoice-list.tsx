@@ -9,7 +9,6 @@ import { formatCents } from "@/lib/money";
 import { StatusStamp } from "@/components/invoices/status-stamp";
 import type { InvoiceStatus } from "@/components/invoices/status-stamp";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/date";
+import { EmptyRow, LoadMoreButton, SkeletonRows } from "@/components/app-shell/table-states";
 
 const PAGE_SIZE = 25;
 
@@ -91,20 +91,11 @@ export function InvoiceList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading &&
-              ["a", "b", "c", "d", "e"].map((key) => (
-                <TableRow key={key}>
-                  <TableCell colSpan={5}>
-                    <Skeleton className="h-6 w-full" />
-                  </TableCell>
-                </TableRow>
-              ))}
+            {loading && <SkeletonRows count={5} colSpan={5} />}
             {!loading && results.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
-                  {status ? "No invoices with this status." : "No invoices yet — create your first one."}
-                </TableCell>
-              </TableRow>
+              <EmptyRow colSpan={5}>
+                {status ? "No invoices with this status." : "No invoices yet — create your first one."}
+              </EmptyRow>
             )}
             {results.map((invoice) => (
               <TableRow key={invoice._id}>
@@ -129,11 +120,7 @@ export function InvoiceList() {
         </Table>
       </div>
 
-      {loadStatus === "CanLoadMore" && (
-        <Button variant="outline" onClick={() => loadMore(PAGE_SIZE)} className="self-center">
-          Load more
-        </Button>
-      )}
+      <LoadMoreButton status={loadStatus} onLoadMore={() => loadMore(PAGE_SIZE)} />
     </div>
   );
 }

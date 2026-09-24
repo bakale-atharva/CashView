@@ -5,6 +5,7 @@ import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { formatCents } from "@/lib/money";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatTile } from "@/components/app-shell/stat-tile";
 
 const BUCKET_LABEL: Record<string, string> = {
   current: "Current",
@@ -27,28 +28,18 @@ export function ReceivablesReport({ from, to }: { from: number; to: number }) {
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Invoiced</p>
-          <p className="font-mono text-xl font-semibold tabular-nums">
-            {formatCents(data.range.invoicedCents, data.currency)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Collected</p>
-          <p className="font-mono text-xl font-semibold tabular-nums">
-            {formatCents(data.range.collectedCents, data.currency)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Collection rate</p>
-          <p className="font-mono text-xl font-semibold tabular-nums">{data.range.collectionRatePct}%</p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Outstanding now</p>
-          <p className="font-mono text-xl font-semibold tabular-nums">
-            {formatCents(data.outstanding.totalCents, data.currency)}
-          </p>
-        </div>
+        <StatTile label="Invoiced" size="md">
+          {formatCents(data.range.invoicedCents, data.currency)}
+        </StatTile>
+        <StatTile label="Collected" size="md">
+          {formatCents(data.range.collectedCents, data.currency)}
+        </StatTile>
+        <StatTile label="Collection rate" size="md">
+          {data.range.collectionRatePct}%
+        </StatTile>
+        <StatTile label="Outstanding now" size="md">
+          {formatCents(data.outstanding.totalCents, data.currency)}
+        </StatTile>
       </div>
 
       <div>

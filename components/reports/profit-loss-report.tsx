@@ -10,6 +10,7 @@ import { ChartTooltip } from "@/components/charts/tooltip";
 import { Grid } from "@/components/charts/grid";
 import { BarXAxis } from "@/components/charts/bar-x-axis";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatTile } from "@/components/app-shell/stat-tile";
 
 export function ProfitLossReport({
   from,
@@ -31,24 +32,15 @@ export function ProfitLossReport({
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-3 gap-4">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Revenue</p>
-          <p className="font-mono text-xl font-semibold tabular-nums">
-            {formatCents(data.revenueCents, data.currency)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Expenses</p>
-          <p className="font-mono text-xl font-semibold tabular-nums">
-            {formatCents(data.expensesCents, data.currency)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Net profit ({data.marginPct}% margin)</p>
-          <p className="font-mono text-xl font-semibold tabular-nums">
-            {formatCents(data.netProfitCents, data.currency)}
-          </p>
-        </div>
+        <StatTile label="Revenue" size="md">
+          {formatCents(data.revenueCents, data.currency)}
+        </StatTile>
+        <StatTile label="Expenses" size="md">
+          {formatCents(data.expensesCents, data.currency)}
+        </StatTile>
+        <StatTile label={<>Net profit ({data.marginPct}% margin)</>} size="md">
+          {formatCents(data.netProfitCents, data.currency)}
+        </StatTile>
       </div>
       <BarChart data={series} xDataKey="date" status="ready">
         <Grid horizontal />

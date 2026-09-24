@@ -3,7 +3,6 @@
 import { usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -12,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyRow, SkeletonRows } from "@/components/app-shell/table-states";
 
 const ACTION_VARIANT: Record<string, "default" | "secondary" | "destructive"> = {
   create: "secondary",
@@ -41,20 +41,11 @@ export function AuditLogViewer() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading &&
-              ["a", "b", "c"].map((key) => (
-                <TableRow key={key}>
-                  <TableCell colSpan={4}>
-                    <Skeleton className="h-6 w-full" />
-                  </TableCell>
-                </TableRow>
-              ))}
+            {loading && <SkeletonRows count={3} colSpan={4} />}
             {!loading && results.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={4} className="py-10 text-center text-sm text-muted-foreground">
-                  Nothing recorded yet.
-                </TableCell>
-              </TableRow>
+              <EmptyRow colSpan={4}>
+                Nothing recorded yet.
+              </EmptyRow>
             )}
             {results.map((entry) => (
               <TableRow key={entry._id}>

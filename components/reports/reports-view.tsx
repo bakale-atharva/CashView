@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SectionCard } from "@/components/app-shell/section-card";
 import { ProfitLossReport } from "./profit-loss-report";
 import { ReceivablesReport } from "./receivables-report";
 
@@ -71,30 +72,25 @@ export function ReportsView() {
         </div>
       </div>
 
-      <section className="rounded-lg border border-border bg-card p-5">
-        <h2 className="mb-4 text-sm font-semibold">Receivables</h2>
+      <SectionCard title="Receivables">
         <ReceivablesReport from={from} to={to} />
-      </section>
+      </SectionCard>
 
-      <section className="rounded-lg border border-border bg-card p-5">
-        <h2 className="mb-4 text-sm font-semibold">Revenue</h2>
+      <SectionCard title="Revenue">
         <RevenueChart from={from} to={to} granularity={granularity} />
-      </section>
+      </SectionCard>
 
-      <section className="rounded-lg border border-border bg-card p-5">
-        <h2 className="mb-4 text-sm font-semibold">Profit &amp; loss</h2>
+      <SectionCard title="Profit & loss">
         <ProfitLossReport from={from} to={to} granularity={granularity} />
-      </section>
+      </SectionCard>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-lg border border-border bg-card p-5">
-          <h2 className="mb-4 text-sm font-semibold">Expense breakdown</h2>
+        <SectionCard title="Expense breakdown">
           <ExpenseBreakdownChart from={from} to={to} />
-        </section>
-        <section className="rounded-lg border border-border bg-card p-5">
-          <h2 className="mb-4 text-sm font-semibold">Cash flow</h2>
+        </SectionCard>
+        <SectionCard title="Cash flow">
           <CashFlowChart from={from} to={to} granularity={granularity} />
-        </section>
+        </SectionCard>
       </div>
     </div>
   );

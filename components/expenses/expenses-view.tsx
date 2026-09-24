@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -25,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmptyRow, LoadMoreButton, SkeletonRows } from "@/components/app-shell/table-states";
 import { CategoriesDialog } from "./categories-dialog";
 import { ExpenseFormDialog } from "./expense-form-dialog";
 
@@ -90,20 +90,11 @@ export function ExpensesView() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading &&
-              ["a", "b", "c", "d", "e"].map((key) => (
-                <TableRow key={key}>
-                  <TableCell colSpan={6}>
-                    <Skeleton className="h-6 w-full" />
-                  </TableCell>
-                </TableRow>
-              ))}
+            {loading && <SkeletonRows count={5} colSpan={6} />}
             {!loading && results.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
-                  {categoryId ? "No expenses in this category." : "No expenses yet."}
-                </TableCell>
-              </TableRow>
+              <EmptyRow colSpan={6}>
+                {categoryId ? "No expenses in this category." : "No expenses yet."}
+              </EmptyRow>
             )}
             {results.map((expense) => (
               <TableRow key={expense._id}>
@@ -136,11 +127,7 @@ export function ExpensesView() {
         </Table>
       </div>
 
-      {status === "CanLoadMore" && (
-        <Button variant="outline" onClick={() => loadMore(PAGE_SIZE)} className="self-center">
-          Load more
-        </Button>
-      )}
+      <LoadMoreButton status={status} onLoadMore={() => loadMore(PAGE_SIZE)} />
 
       <ExpenseFormDialog open={createOpen} onOpenChange={setCreateOpen} />
       <CategoriesDialog open={categoriesOpen} onOpenChange={setCategoriesOpen} />

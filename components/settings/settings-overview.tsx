@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEntitlements } from "@/lib/use-entitlements";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SectionCard } from "@/components/app-shell/section-card";
 import { GATED_FEATURES, PLAN_LABEL } from "./plan-copy";
 
 function Meter({ label, used, limit }: { label: string; used: number; limit: number | null }) {
@@ -68,11 +69,10 @@ export function SettingsOverview() {
         </Link>
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-5">
-        <h2 className="text-sm font-semibold">Usage</h2>
-        <p className="mb-4 text-xs text-muted-foreground">
-          Caps stop you adding more; they never hide what you already have.
-        </p>
+      <SectionCard
+        title="Usage"
+        description="Caps stop you adding more; they never hide what you already have."
+      >
         <div className="space-y-4">
           <Meter label="Clients" used={summary.clients.used} limit={summary.clients.limit} />
           <Meter
@@ -84,7 +84,7 @@ export function SettingsOverview() {
             <Meter label="Seats" used={summary.seats.used} limit={summary.seats.limit} />
           )}
         </div>
-      </section>
+      </SectionCard>
 
       <section className="rounded-lg border border-border bg-card p-5 lg:col-span-2">
         <h2 className="text-sm font-semibold">Features</h2>

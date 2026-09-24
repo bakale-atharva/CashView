@@ -19,6 +19,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { StatTile } from "@/components/app-shell/stat-tile";
+import { BackBreadcrumb } from "@/components/app-shell/back-breadcrumb";
+import { SkeletonRows } from "@/components/app-shell/table-states";
 import { ClientFormDialog } from "./client-form-dialog";
 
 export function ClientDetail({ clientId }: { clientId: Id<"clients"> }) {
@@ -43,14 +46,9 @@ export function ClientDetail({ clientId }: { clientId: Id<"clients"> }) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <Link href="/app/clients" className="text-sm text-muted-foreground hover:underline">
-              Clients
-            </Link>
-            <span className="text-sm text-muted-foreground">/</span>
-            <h1 className="text-xl font-semibold tracking-tight">{client.name}</h1>
+          <BackBreadcrumb href="/app/clients" label="Clients" title={client.name}>
             {client.isArchived && <Badge variant="secondary">Archived</Badge>}
-          </div>
+          </BackBreadcrumb>
           {client.company && <p className="text-sm text-muted-foreground">{client.company}</p>}
         </div>
         <Button variant="outline" onClick={() => setEditOpen(true)}>
@@ -59,24 +57,15 @@ export function ClientDetail({ clientId }: { clientId: Id<"clients"> }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Outstanding</p>
-          <p className="font-mono text-2xl font-semibold tabular-nums">
-            {formatCents(client.outstandingCents, client.currency)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Total billed</p>
-          <p className="font-mono text-2xl font-semibold tabular-nums">
-            {formatCents(client.totalBilledCents, client.currency)}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Total paid</p>
-          <p className="font-mono text-2xl font-semibold tabular-nums">
-            {formatCents(client.totalPaidCents, client.currency)}
-          </p>
-        </div>
+        <StatTile label="Outstanding">
+          {formatCents(client.outstandingCents, client.currency)}
+        </StatTile>
+        <StatTile label="Total billed">
+          {formatCents(client.totalBilledCents, client.currency)}
+        </StatTile>
+        <StatTile label="Total paid">
+          {formatCents(client.totalPaidCents, client.currency)}
+        </StatTile>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -108,14 +97,7 @@ export function ClientDetail({ clientId }: { clientId: Id<"clients"> }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {status === "LoadingFirstPage" &&
-                ["a", "b", "c"].map((key) => (
-                  <TableRow key={key}>
-                    <TableCell colSpan={4}>
-                      <Skeleton className="h-6 w-full" />
-                    </TableCell>
-                  </TableRow>
-                ))}
+              {status === "LoadingFirstPage" && <SkeletonRows count={3} colSpan={4} />}
               {status !== "LoadingFirstPage" && invoices.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="py-8 text-center text-sm text-muted-foreground">
