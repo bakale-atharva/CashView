@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useFeature } from "@/lib/use-entitlements";
 import { PieChart } from "@/components/charts/pie-chart";
+import { PieSlice } from "@/components/charts/pie-slice";
 import { formatCents } from "@/lib/money";
 import { UpgradePrompt } from "./upgrade-prompt";
 
@@ -54,7 +55,9 @@ export function ExpenseBreakdownChart({ from, to }: { from: number; to: number }
     <div className="flex items-start gap-4">
       <div className="shrink-0">
         <PieChart data={rows.map((r) => ({ label: r.name, value: r.cents, color: r.color }))} size={140} innerRadius={42} padAngle={0.02} cornerRadius={3}>
-          <></>
+          {rows.map((r, i) => (
+            <PieSlice key={r.key} index={i} />
+          ))}
         </PieChart>
       </div>
       <ul className="min-w-0 flex-1 space-y-1.5 text-sm">
