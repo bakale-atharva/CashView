@@ -5,7 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Doc } from "@/convex/_generated/dataModel";
-import { describeError } from "@/lib/convex-error";
+import { useSubmit } from "@/lib/use-submit";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,7 +51,7 @@ export function ClientFormDialog({
   onSaved?: (id: string) => void;
 }) {
   const [form, setForm] = useState<FormState>(() => emptyForm(client));
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useSubmit();
   const create = useMutation(api.clients.create);
   const update = useMutation(api.clients.update);
   const isEdit = client !== undefined;
@@ -62,7 +62,6 @@ export function ClientFormDialog({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitting(true);
     const input = {
       name: form.name,
       company: form.company || undefined,
@@ -71,7 +70,7 @@ export function ClientFormDialog({
       currency: form.currency || undefined,
       notes: form.notes || undefined,
     };
-    try {
+    await run(async () => {
       if (isEdit) {
         await update({ id: client._id, ...input });
         toast.success("Client updated");
@@ -83,11 +82,7 @@ export function ClientFormDialog({
         onSaved?.(id);
       }
       onOpenChange(false);
-    } catch (error) {
-      toast.error(describeError(error));
-    } finally {
-      setSubmitting(false);
-    }
+    });
   }
 
   return (

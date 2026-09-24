@@ -1,23 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMonthRange } from "@/lib/use-month-range";
 import { CashFlowChart } from "./cash-flow-chart";
 import { ExpenseBreakdownChart } from "./expense-breakdown-chart";
 import { ReceivablesSummary } from "./receivables-summary";
 import { RecentInvoices } from "./recent-invoices";
 import { RevenueChart } from "./revenue-chart";
 
-function useLastSixMonths() {
-  return useMemo(() => {
-    const now = new Date();
-    const to = now.getTime();
-    const from = new Date(now.getFullYear(), now.getMonth() - 5, 1).getTime();
-    return { from, to };
-  }, []);
-}
-
 export function DashboardView() {
-  const { from, to } = useLastSixMonths();
+  const { from, to } = useMonthRange(6);
 
   return (
     <div className="flex flex-col gap-8">

@@ -13,3 +13,13 @@ function formatterFor(currency: string): Intl.NumberFormat {
 export function formatCents(cents: number, currency = "USD"): string {
   return formatterFor(currency).format(cents / 100);
 }
+
+/** Integer cents → the plain `12.34` an amount input starts with. */
+export function centsToInput(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
+/** An amount input's value → integer cents. */
+export function inputToCents(value: string): number {
+  return Math.round(Number(value) * 100);
+}

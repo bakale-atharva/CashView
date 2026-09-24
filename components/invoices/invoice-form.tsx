@@ -6,9 +6,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { describeError } from "@/lib/convex-error";
 import type { LineItemDraft } from "@/lib/invoice-totals";
 import { emptyLineItem } from "@/lib/invoice-totals";
+import { dateToInput, inputToDate } from "@/lib/date";
+import { useSubmit } from "@/lib/use-submit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,16 +23,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { LineItemsEditor } from "./line-items-editor";
-
-function dateToInput(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 10);
-}
-
-function inputToDate(value: string): number | undefined {
-  if (!value) return undefined;
-  const [y, m, d] = value.split("-").map(Number);
-  return Date.UTC(y, m - 1, d);
-}
 
 function draftsFromLines(
   lines: readonly { description: string; quantity: number; unitPriceCents: number; taxRatePct: number }[],
@@ -68,7 +59,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: Id<"invoices"> }) {
   const [discountCents, setDiscountCents] = useState(0);
   const [lines, setLines] = useState<LineItemDraft[]>([emptyLineItem()]);
   const [hydrated, setHydrated] = useState(!isEdit);
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useSubmit();
 
   if (isEdit && existing !== undefined && !hydrated) {
     const { invoice, lineItems } = existing;
@@ -126,8 +117,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: Id<"invoices"> }) {
       lineItems,
     };
 
-    setSubmitting(true);
-    try {
+    await run(async () => {
       let id: Id<"invoices">;
       if (isEdit) {
         await update({ id: invoiceId, ...input });
@@ -137,11 +127,7 @@ export function InvoiceForm({ invoiceId }: { invoiceId?: Id<"invoices"> }) {
       }
       toast.success(isEdit ? "Draft updated" : "Draft created");
       router.push(`/app/invoices/${id}`);
-    } catch (error) {
-      toast.error(describeError(error));
-    } finally {
-      setSubmitting(false);
-    }
+    });
   }
 
   return (

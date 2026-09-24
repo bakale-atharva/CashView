@@ -1,8 +1,7 @@
 "use client";
 
-import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useFeature } from "@/lib/use-entitlements";
+import { useGatedQuery } from "@/lib/use-gated-query";
 import { Bar } from "@/components/charts/bar";
 import { BarChart } from "@/components/charts/bar-chart";
 import { Grid } from "@/components/charts/grid";
@@ -26,8 +25,11 @@ export function CashFlowChart({
   to: number;
   granularity?: "month" | "quarter" | "year";
 }) {
-  const hasReports = useFeature("reports");
-  const cashFlow = useQuery(api.reports.cashFlow, hasReports ? { from, to, granularity } : "skip");
+  const { allowed: hasReports, data: cashFlow } = useGatedQuery("reports", api.reports.cashFlow, {
+    from,
+    to,
+    granularity,
+  });
 
   if (hasReports === false) {
     return <UpgradePrompt feature="Cash flow" />;

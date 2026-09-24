@@ -10,6 +10,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { describeError } from "@/lib/convex-error";
 import { formatCents } from "@/lib/money";
+import { formatDate } from "@/lib/date";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -176,8 +177,8 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: Id<"invoices"> }) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 text-sm text-muted-foreground">
-        <div>Issued {new Date(invoice.issueDate).toLocaleDateString()}</div>
-        <div>Due {new Date(invoice.dueDate).toLocaleDateString()}</div>
+        <div>Issued {formatDate(invoice.issueDate)}</div>
+        <div>Due {formatDate(invoice.dueDate)}</div>
       </div>
 
       <div>
@@ -259,7 +260,7 @@ export function InvoiceDetail({ invoiceId }: { invoiceId: Id<"invoices"> }) {
                 {payments.map((payment) => (
                   <TableRow key={payment._id}>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(payment.paidAt).toLocaleDateString()}
+                      {formatDate(payment.paidAt)}
                     </TableCell>
                     <TableCell>{payment.method}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">

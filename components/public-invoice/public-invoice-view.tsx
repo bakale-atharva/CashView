@@ -5,6 +5,7 @@ import { Download } from "lucide-react";
 import { useEffect } from "react";
 import { api } from "@/convex/_generated/api";
 import { formatCents } from "@/lib/money";
+import { formatDate } from "@/lib/date";
 import { StatusStamp } from "@/components/invoices/status-stamp";
 import { LogoMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
@@ -80,9 +81,9 @@ export function PublicInvoiceView({ token }: { token: string }) {
           </div>
           <div className="text-right">
             <p className="text-muted-foreground">
-              Issued {new Date(data.issueDate).toLocaleDateString()}
+              Issued {formatDate(data.issueDate)}
             </p>
-            <p className="text-muted-foreground">Due {new Date(data.dueDate).toLocaleDateString()}</p>
+            <p className="text-muted-foreground">Due {formatDate(data.dueDate)}</p>
           </div>
         </div>
 

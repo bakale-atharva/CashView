@@ -1,8 +1,7 @@
 "use client";
 
-import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useFeature } from "@/lib/use-entitlements";
+import { useGatedQuery } from "@/lib/use-gated-query";
 import { Grid } from "@/components/charts/grid";
 import { LineChart, Line } from "@/components/charts/line-chart";
 import { XAxis } from "@/components/charts/x-axis";
@@ -18,10 +17,11 @@ export function RevenueChart({
   to: number;
   granularity?: "month" | "quarter" | "year";
 }) {
-  const hasReports = useFeature("reports");
-  // Gated on the backend (convex/reports.ts) behind the `reports` feature —
-  // skip the query entirely rather than let it throw UPGRADE_REQUIRED.
-  const revenue = useQuery(api.reports.revenue, hasReports ? { from, to, granularity } : "skip");
+  const { allowed: hasReports, data: revenue } = useGatedQuery("reports", api.reports.revenue, {
+    from,
+    to,
+    granularity,
+  });
 
   if (hasReports === false) {
     return <UpgradePrompt feature="Revenue trends" />;

@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/lib/date";
 
 const PAGE_SIZE = 25;
 
@@ -117,7 +118,7 @@ export function InvoiceList() {
                   <StatusStamp status={invoice.status} />
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {new Date(invoice.dueDate).toLocaleDateString()}
+                  {formatDate(invoice.dueDate)}
                 </TableCell>
                 <TableCell className="text-right font-mono tabular-nums">
                   {formatCents(invoice.balanceCents, invoice.currency)}

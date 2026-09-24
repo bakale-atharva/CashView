@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import { describeError } from "@/lib/convex-error";
 import { useFeature } from "@/lib/use-entitlements";
+import { formatDate } from "@/lib/date";
 import { UpgradePrompt } from "@/components/dashboard/upgrade-prompt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -113,7 +114,7 @@ export function RecurringList() {
                   {FREQUENCY_LABEL[template.frequency]}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {new Date(template.nextRunAt).toLocaleDateString()}
+                  {formatDate(template.nextRunAt)}
                 </TableCell>
                 <TableCell>
                   {template.isActive ? (

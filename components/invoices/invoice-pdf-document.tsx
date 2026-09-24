@@ -1,4 +1,6 @@
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { formatDate } from "@/lib/date";
+import { formatCents } from "@/lib/money";
 
 /**
  * Server-only (Node runtime route handlers, see app/api/**\/pdf). Never
@@ -49,10 +51,6 @@ export type InvoicePdfData = {
     footerNote: string | null;
   };
 };
-
-function money(cents: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
-}
 
 function addressLines(address: InvoicePdfAddress | null | undefined): string[] {
   if (!address) return [];
@@ -150,8 +148,8 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
             ))}
           </View>
           <View style={[styles.addressBlock, { alignItems: "flex-end" }]}>
-            <Text style={styles.muted}>Issued {new Date(data.issueDate).toLocaleDateString()}</Text>
-            <Text style={styles.muted}>Due {new Date(data.dueDate).toLocaleDateString()}</Text>
+            <Text style={styles.muted}>Issued {formatDate(data.issueDate)}</Text>
+            <Text style={styles.muted}>Due {formatDate(data.dueDate)}</Text>
           </View>
         </View>
 
@@ -167,9 +165,9 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
             <View key={i} style={styles.tableRow}>
               <Text style={styles.colDescription}>{line.description}</Text>
               <Text style={styles.colQty}>{line.quantity}</Text>
-              <Text style={styles.colPrice}>{money(line.unitPriceCents, data.currency)}</Text>
+              <Text style={styles.colPrice}>{formatCents(line.unitPriceCents, data.currency)}</Text>
               <Text style={styles.colTax}>{line.taxRatePct}%</Text>
-              <Text style={styles.colAmount}>{money(line.amountCents, data.currency)}</Text>
+              <Text style={styles.colAmount}>{formatCents(line.amountCents, data.currency)}</Text>
             </View>
           ))}
         </View>
@@ -177,26 +175,26 @@ export function InvoicePdfDocument({ data }: { data: InvoicePdfData }) {
         <View style={styles.totals}>
           <View style={styles.totalsRow}>
             <Text style={styles.muted}>Subtotal</Text>
-            <Text>{money(data.subtotalCents, data.currency)}</Text>
+            <Text>{formatCents(data.subtotalCents, data.currency)}</Text>
           </View>
           <View style={styles.totalsRow}>
             <Text style={styles.muted}>Tax</Text>
-            <Text>{money(data.taxCents, data.currency)}</Text>
+            <Text>{formatCents(data.taxCents, data.currency)}</Text>
           </View>
           {data.discountCents > 0 && (
             <View style={styles.totalsRow}>
               <Text style={styles.muted}>Discount</Text>
-              <Text>-{money(data.discountCents, data.currency)}</Text>
+              <Text>-{formatCents(data.discountCents, data.currency)}</Text>
             </View>
           )}
           <View style={styles.totalsFinal}>
             <Text>Total</Text>
-            <Text>{money(data.totalCents, data.currency)}</Text>
+            <Text>{formatCents(data.totalCents, data.currency)}</Text>
           </View>
           {data.paidCents > 0 && (
             <View style={styles.totalsRow}>
               <Text style={styles.muted}>Balance due</Text>
-              <Text>{money(data.balanceCents, data.currency)}</Text>
+              <Text>{formatCents(data.balanceCents, data.currency)}</Text>
             </View>
           )}
         </View>

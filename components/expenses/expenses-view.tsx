@@ -7,6 +7,7 @@ import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { formatCents } from "@/lib/money";
+import { formatDate } from "@/lib/date";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -118,7 +119,7 @@ export function ExpensesView() {
                   {expense.categoryName ?? "—"}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {new Date(expense.spentAt).toLocaleDateString()}
+                  {formatDate(expense.spentAt)}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {expense.clientName ?? "—"}

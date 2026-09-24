@@ -5,7 +5,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { describeError } from "@/lib/convex-error";
+import { centsToInput, inputToCents } from "@/lib/money";
+import { useSubmit } from "@/lib/use-submit";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,18 +30,17 @@ export function RecordPaymentDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const recordPayment = useMutation(api.invoices.recordPayment);
-  const [amount, setAmount] = useState(() => (balanceCents / 100).toFixed(2));
+  const [amount, setAmount] = useState(() => centsToInput(balanceCents));
   const [method, setMethod] = useState("");
   const [reference, setReference] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useSubmit();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSubmitting(true);
-    try {
+    await run(async () => {
       await recordPayment({
         invoiceId,
-        amountCents: Math.round(Number(amount) * 100),
+        amountCents: inputToCents(amount),
         method,
         reference: reference || undefined,
       });
@@ -48,11 +48,7 @@ export function RecordPaymentDialog({
       onOpenChange(false);
       setMethod("");
       setReference("");
-    } catch (error) {
-      toast.error(describeError(error));
-    } finally {
-      setSubmitting(false);
-    }
+    });
   }
 
   return (

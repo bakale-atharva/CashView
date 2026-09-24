@@ -11,6 +11,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { describeError } from "@/lib/convex-error";
 import { formatCents } from "@/lib/money";
 import { useFeature } from "@/lib/use-entitlements";
+import { formatDate } from "@/lib/date";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,7 +75,7 @@ function ScanSuggestion({ expenseId }: { expenseId: Id<"expenses"> }) {
         {suggestion.spentAt !== undefined && (
           <>
             <dt>Date</dt>
-            <dd className="text-foreground">{new Date(suggestion.spentAt).toLocaleDateString()}</dd>
+            <dd className="text-foreground">{formatDate(suggestion.spentAt)}</dd>
           </>
         )}
       </dl>
@@ -144,7 +145,7 @@ export function ExpenseDetail({ expenseId }: { expenseId: Id<"expenses"> }) {
             <h1 className="text-xl font-semibold tracking-tight">{expense.vendor}</h1>
           </div>
           <p className="text-sm text-muted-foreground">
-            {category?.name ?? "Uncategorised"} · {new Date(expense.spentAt).toLocaleDateString()}
+            {category?.name ?? "Uncategorised"} · {formatDate(expense.spentAt)}
           </p>
         </div>
         <div className="flex items-center gap-2">

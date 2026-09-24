@@ -5,7 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
-import { describeError } from "@/lib/convex-error";
+import { dateToInput } from "@/lib/date";
+import { centsToInput, inputToCents } from "@/lib/money";
+import { useSubmit } from "@/lib/use-submit";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -38,18 +40,14 @@ type FormState = {
   clientId: Id<"clients"> | undefined;
 };
 
-function todayInput(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function emptyForm(expense?: Doc<"expenses">): FormState {
   return {
     categoryId: expense?.categoryId,
     vendor: expense?.vendor ?? "",
     description: expense?.description ?? "",
-    amount: expense ? (expense.amountCents / 100).toFixed(2) : "",
-    tax: expense && expense.taxCents > 0 ? (expense.taxCents / 100).toFixed(2) : "",
-    spentAt: expense ? new Date(expense.spentAt).toISOString().slice(0, 10) : todayInput(),
+    amount: expense ? centsToInput(expense.amountCents) : "",
+    tax: expense && expense.taxCents > 0 ? centsToInput(expense.taxCents) : "",
+    spentAt: dateToInput(expense ? expense.spentAt : Date.now()),
     paymentMethod: expense?.paymentMethod ?? "",
     isBillable: expense?.isBillable ?? false,
     clientId: expense?.clientId,
@@ -69,7 +67,7 @@ export function ExpenseFormDialog({
   onSaved?: (id: string) => void;
 }) {
   const [form, setForm] = useState<FormState>(() => emptyForm(expense));
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useSubmit();
   const categories = useQuery(api.expenseCategories.list, {});
   const { results: clients } = usePaginatedQuery(
     api.clients.list,
@@ -95,16 +93,15 @@ export function ExpenseFormDialog({
       categoryId: form.categoryId,
       vendor: form.vendor,
       description: form.description || undefined,
-      amountCents: Math.round(Number(form.amount) * 100),
-      taxCents: form.tax ? Math.round(Number(form.tax) * 100) : undefined,
+      amountCents: inputToCents(form.amount),
+      taxCents: form.tax ? inputToCents(form.tax) : undefined,
       spentAt: Date.UTC(y, m - 1, d),
       paymentMethod: form.paymentMethod,
       isBillable: form.isBillable,
       clientId: form.isBillable ? form.clientId : undefined,
     };
 
-    setSubmitting(true);
-    try {
+    await run(async () => {
       if (isEdit) {
         await update({ id: expense._id, ...input });
         toast.success("Expense updated");
@@ -116,11 +113,7 @@ export function ExpenseFormDialog({
         onSaved?.(id);
       }
       onOpenChange(false);
-    } catch (error) {
-      toast.error(describeError(error));
-    } finally {
-      setSubmitting(false);
-    }
+    });
   }
 
   return (

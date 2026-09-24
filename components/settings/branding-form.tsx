@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Doc, Id } from "@/convex/_generated/dataModel";
 import { describeError } from "@/lib/convex-error";
+import { useSubmit } from "@/lib/use-submit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,7 +57,7 @@ export function BrandingForm() {
 
   const [form, setForm] = useState<FormState | null>(null);
   const [hydratedFor, setHydratedFor] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const { submitting, run } = useSubmit();
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -81,8 +82,7 @@ export function BrandingForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
-    setSubmitting(true);
-    try {
+    await run(async () => {
       await update({
         businessName: form.businessName || undefined,
         address:
@@ -99,11 +99,7 @@ export function BrandingForm() {
         footerNote: form.footerNote || undefined,
       });
       toast.success("Settings saved");
-    } catch (error) {
-      toast.error(describeError(error));
-    } finally {
-      setSubmitting(false);
-    }
+    });
   }
 
   async function handleLogoChange(file: File) {

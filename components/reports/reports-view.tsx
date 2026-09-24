@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useFeature } from "@/lib/use-entitlements";
+import { useMonthRange } from "@/lib/use-month-range";
 import { CashFlowChart } from "@/components/dashboard/cash-flow-chart";
 import { ExpenseBreakdownChart } from "@/components/dashboard/expense-breakdown-chart";
 import { RevenueChart } from "@/components/dashboard/revenue-chart";
@@ -29,13 +30,7 @@ export function ReportsView() {
   const [months, setMonths] = useState<number>(6);
   const [granularity, setGranularity] = useState<Granularity>("month");
 
-  const { from, to } = useMemo(() => {
-    const now = new Date();
-    return {
-      to: now.getTime(),
-      from: new Date(now.getFullYear(), now.getMonth() - (months - 1), 1).getTime(),
-    };
-  }, [months]);
+  const { from, to } = useMonthRange(months);
 
   if (hasReports === false) {
     return (

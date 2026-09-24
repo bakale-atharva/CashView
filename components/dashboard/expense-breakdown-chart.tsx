@@ -1,8 +1,7 @@
 "use client";
 
-import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useFeature } from "@/lib/use-entitlements";
+import { useGatedQuery } from "@/lib/use-gated-query";
 import { PieChart } from "@/components/charts/pie-chart";
 import { PieSlice } from "@/components/charts/pie-slice";
 import { formatCents } from "@/lib/money";
@@ -21,8 +20,10 @@ const OTHER_COLOR = "var(--muted-foreground)";
 const MAX_SLICES = PALETTE.length;
 
 export function ExpenseBreakdownChart({ from, to }: { from: number; to: number }) {
-  const hasReports = useFeature("reports");
-  const breakdown = useQuery(api.reports.expenseBreakdown, hasReports ? { from, to } : "skip");
+  const { allowed: hasReports, data: breakdown } = useGatedQuery("reports", api.reports.expenseBreakdown, {
+    from,
+    to,
+  });
 
   if (hasReports === false) {
     return <UpgradePrompt feature="Expense breakdown" />;

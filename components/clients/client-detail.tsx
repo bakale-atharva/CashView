@@ -6,6 +6,7 @@ import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { formatCents } from "@/lib/money";
+import { formatDate } from "@/lib/date";
 import { StatusStamp } from "@/components/invoices/status-stamp";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -130,7 +131,7 @@ export function ClientDetail({ clientId }: { clientId: Id<"clients"> }) {
                     </Link>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {new Date(invoice.issueDate).toLocaleDateString()}
+                    {formatDate(invoice.issueDate)}
                   </TableCell>
                   <TableCell>
                     <StatusStamp status={invoice.status} />
