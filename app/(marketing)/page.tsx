@@ -87,7 +87,7 @@ export default function MarketingHome() {
               </SignInButton>
             </Show>
             <Show when="signed-in">
-              <Button size="lg" render={<Link href="/app" />}>
+              <Button size="lg" nativeButton={false} render={<Link href="/app" />}>
                 Go to your books
               </Button>
             </Show>
@@ -204,7 +204,7 @@ export default function MarketingHome() {
           </SignUpButton>
         </Show>
         <Show when="signed-in">
-          <Button size="lg" render={<Link href="/app" />}>
+          <Button size="lg" nativeButton={false} render={<Link href="/app" />}>
             Go to your books
           </Button>
         </Show>
