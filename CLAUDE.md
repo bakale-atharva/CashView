@@ -1,5 +1,14 @@
 @AGENTS.md
 
+## CashView domain skills
+
+Before changing accounting logic, load the matching skill in `.claude/skills/`:
+
+- `cashview-invoice-math`: totals, tax, discounts, integer cents
+- `cashview-invoice-lifecycle`: invoice statuses and payments
+- `cashview-reports`: reports, aging, currency conversion
+- `cashview-recurring-invoices`: recurring schedules and generation
+
 <!-- convex-ai-start -->
 
 This project uses [Convex](https://convex.dev) as its backend.
