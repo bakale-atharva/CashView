@@ -8,6 +8,8 @@ Before changing accounting logic, load the matching skill in `.claude/skills/`:
 - `cashview-invoice-lifecycle`: invoice statuses and payments
 - `cashview-reports`: reports, aging, currency conversion
 - `cashview-recurring-invoices`: recurring schedules and generation
+- `cashview-multitenancy`: scopes, row-level security, roles, triggers, plans
+- `cashview-receipt-scan`: AI receipt scanning and model-output validation
 
 <!-- convex-ai-start -->
 

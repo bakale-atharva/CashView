@@ -1,0 +1,31 @@
+Copyright (c) 2026 Atharva Bakale. All rights reserved.
+
+This repository and its contents (the "Software") are proprietary. The source
+is publicly visible for reference only. No license is granted to use, copy,
+modify, merge, publish, distribute, sublicense, sell, or create derivative
+works of the Software, in whole or in part, without the prior written
+permission of the copyright holder.
+
+Viewing the source on GitHub, and forking it within GitHub as permitted by
+GitHub's Terms of Service, does not grant any further rights.
+
+Exceptions:
+
+1. Third-party components keep their own licenses. This includes the
+   installed agent skills under .claude/skills/ that were not written for
+   CashView (listed in skills-lock.json with their source repositories) and
+   all dependencies listed in package.json.
+
+2. The following agent skills are released under the MIT License; see the
+   LICENSE file inside each directory:
+     .claude/skills/cashview-invoice-math/
+     .claude/skills/cashview-invoice-lifecycle/
+     .claude/skills/cashview-reports/
+     .claude/skills/cashview-recurring-invoices/
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR ITS USE.
+
+For licensing enquiries, contact the repository owner on GitHub.
